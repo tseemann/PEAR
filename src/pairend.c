@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 #include "fastq.h"
+#include "time.h"
 
 /* possibly implement it such that we keep a number of strings for each diff_cnt */
 
@@ -17,6 +19,9 @@ struct dp_matrix
    int          cnt_error;
    double       score;
  };
+
+double sc_eq[256][256];
+double sc_neq[256][256];
 
 void 
 trim (struct reads_info * read, int min_quality, int len)
@@ -53,12 +58,92 @@ trim_cpl (struct reads_info * read, int min_quality, int len)
    }
 }
 
+void init_scores (void)
+{
+  int           i, j;
+  double        ex, ey;
+
+  for (i = 0; i < 256; ++ i)
+   {
+     for (j = 0; j < 256; ++ j) 
+      {
+        ex = pow (10.0, - (i - PHRED_INIT) / 10.0);
+        ey = pow (10.0, - (j - PHRED_INIT) / 10.0);
+
+        sc_eq[i][j]  = (1 - ex) * (1 - ey) + (ex * ey) / 3.0;
+        sc_neq[i][j] = (1 - (1.0 / 3.0) * (1 - ex) * ey - (1.0 / 3.0) * (1 - ey) * ex - (2.0 / 9.0) * ex * ey);
+
+     }
+   }
+}
+
+void scoring (char dleft, char dright, char qleft, char qright, int score_method, double * score)
+{
+  //double                ex, ey;
+
+  if (dright != 'N' && dleft != 'N' && dright == dleft)
+   {
+     switch (score_method)
+      {
+        case 1:
+          *score += (qright - PHRED_INIT) + (qleft - PHRED_INIT);
+          break;
+        case 3:
+          //ex      = pow (10.0, - (qright - PHRED_INIT) / 10.0);
+          //ey      = pow (10.0, - (qleft  - PHRED_INIT) / 10.0);
+          //*score += (1 - ex) * (1 - ey) + (ex * ey) / 3.0;
+          *score += sc_eq[(int)qright][(int)qleft];
+          break;
+        case 4:
+          *score += 1;
+          break;
+      }
+   }
+  else
+   {
+     if (dright == 'N' || dleft == 'N')
+      {
+        switch (score_method)
+         {
+           case 1:
+             *score += abs ((qright - PHRED_INIT) - (qleft - PHRED_INIT));
+             break;
+           case 3:
+             *score -= 0.75;
+             break;
+           case 4:
+             *score -= 1;
+             break;
+         }
+      }
+     else
+      {
+        switch (score_method)
+         {
+           case 1:
+             *score += abs ((qright - PHRED_INIT) - (qleft - PHRED_INIT));
+             break;
+           case 3:
+             //ex      = pow (10.0, - (qright - PHRED_INIT) / 10.0);
+             //ey      = pow (10.0, - (qleft  - PHRED_INIT) / 10.0);
+             //*score -= (1 - (1.0 / 3.0) * (1 - ex) * ey - (1.0 / 3.0) * (1 - ey) * ex - (2.0 / 9.0) * ex * ey);
+             *score -= sc_neq[(int)qright][(int)qleft];
+             break;
+           case 4:
+             *score -= 1;
+             break;
+         }
+      }
+   }
+}
+
 void 
 assembly (struct reads_info * left, 
           struct reads_info * right, 
           int               * lps, 
           int               * rps, 
-          struct asm_info   * ai)
+          struct asm_info   * ai,
+          int score_method)
 {
   int                   i,j;
   int                   n;
@@ -71,6 +156,7 @@ assembly (struct reads_info * left,
   rps[0] = 0;
   lps[0] = 0;
 
+  /* compute the prefix sum of quality scores */
   for (i = 1; i <= n; ++ i)
    {
      lps[i] = lps[i - 1] +  left->quality_score[i - 1] - PHRED_INIT;
@@ -81,23 +167,29 @@ assembly (struct reads_info * left,
   for (i = 0; i <= n; ++ i)
    {
      /* sum up the quality scores of the nonoverlapping regions */
-     score  = lps[n - i];
-     score += rps[n] - rps[i];
+     switch (score_method)
+      {
+        case 1:
+          score  = lps[n - i];
+          score += rps[n] - rps[i];
+          break;
+        case 3:
+        case 4:
+          score = 0;
+      }
 
      /* sum up the quality scores of the overlapping regions */
      for (j = 0; j < i; ++ j)
       {
-        if (right->data[j] != 'N' && left->data[n - i + j] != 'N' && right->data[j] == left->data[n - i + j])
-         {
-           score += (right->quality_score[j] - PHRED_INIT) + (left->quality_score[n - i + j] - PHRED_INIT);
-         }
-        else
-         {
-           score += abs ((right->quality_score[j] - PHRED_INIT) - (left->quality_score[n - i + j] - PHRED_INIT));
-         }
+        scoring (left->data[n - i + j], right->data[j], left->quality_score[n - i + j], right->quality_score[j], score_method, &score);
       }
 
-     score = score / (2 * n - i);
+     switch (score_method)
+      {
+        case 1:
+          score = score / (2 * n - i);
+          break;
+      }
  //    printf ( "QS: %f overlap: %d\n", score, i );
 
      if (score > best_score)
@@ -107,23 +199,22 @@ assembly (struct reads_info * left,
       }
    }
 
+  /* compute for score for runthrough case */
   for (i = n - 1; i > 0; --i)
    {
      score = 0;
      for (j = 0; j < i; ++j)
       {
-        if (left->data[j] != 'N' && right->data[n - i + j] != 'N' && left->data[j] == right->data[n - i + j])
-         {
-           score += (left->quality_score[j] - PHRED_INIT) + (right->quality_score[n - i + j] - PHRED_INIT);
-         }
-        else
-         {
-           score += abs ((left->quality_score[j] - PHRED_INIT) - (right->quality_score[n - i + j] - PHRED_INIT));
-         }
+        scoring (left->data[j], right->data[n - i + j], left->quality_score[j], right->quality_score[n - i + j], score_method, &score);
       }
 
 
-     score = score / i;
+     switch (score_method)
+      {
+        case 1:
+          score = score / i;
+          break;
+      }
 //     printf ( "runthrough QS: %f overlap: %d\n", score, i );
      if (score > best_score)
       {
@@ -274,6 +365,18 @@ validate_input (int nleft, int nright)
   return (1);
 }
 
+void makefilename (char * fn, const char * prefix, time_t * t)
+{
+  struct tm *tmp;
+
+  tmp=localtime (t);
+  strcpy (fn, prefix);
+  strftime (fn + strlen(prefix), 50 - strlen(prefix), "%Y%m%d%H%M%S", tmp);
+  strcat (fn, ".out");
+}
+
+
+
 int 
 main (int argc, char * argv[])
 {
@@ -284,14 +387,20 @@ main (int argc, char * argv[])
   int                   cnt_reads_right;
   char                * rev;
   struct asm_info     * ai;
-  FILE                * fd;
+  FILE                * fd,* fdl, * fdr; 
   int                   read_size;
   int                 * qs_lps;
   int                 * qs_rps;
-  int                   min_asm_len, max_asm_len, min_qual_score;
+  int                   min_asm_len, max_asm_len, min_qual_score, score_method;
+  char                  fnouta[50];
+  char                  fnoutul[50];
+  char                  fnoutur[50];
+  time_t t;
 
 
-  if (argc != 6)
+  t = time (NULL);
+
+  if (argc != 7)
    {
      fprintf(stderr, "Syntax: %s [LEFT-END-READS-FILE] [RIGHT-END-READS-FILE] [MIN-ASSEMBLY-LEN] [MAX-ASSEMBLY-LEN] [QUALITY-SCORE-THRESHOLD]\n", argv[0]);
      return (1);
@@ -300,6 +409,7 @@ main (int argc, char * argv[])
   min_asm_len    = atoi(argv[3]);
   max_asm_len    = atoi(argv[4]);
   min_qual_score = atoi(argv[5]);
+  score_method   = atoi(argv[6]);
 
   /* read the two fastq files containing the left-end and right-end reads */
   ri_left  = read_fastq(argv[1], &cnt_reads_left);
@@ -332,6 +442,8 @@ main (int argc, char * argv[])
      ai[i].quality_score = (char *) malloc ((2 * read_size + 1) * sizeof(char));
    }
 
+  init_scores();
+
 
   //#pragma omp parallel shared(ri_left,ri_right,ai) private(qs_lps, qs_rps, i) 
   #pragma omp parallel shared(ri_left,ri_right,ai) private(qs_lps, qs_rps, i) 
@@ -344,27 +456,38 @@ main (int argc, char * argv[])
     #pragma omp for
     for (i = 0; i < cnt_reads_left; ++ i)
      {
-       assembly (ri_left[i], ri_right[i], qs_lps, qs_rps, &ai[i]);
+       assembly (ri_left[i], ri_right[i], qs_lps, qs_rps, &ai[i], score_method);
      }
     free (qs_lps);
     free (qs_rps);
   }
 
-  fd = fopen ("output-par.fastq","w");
+  
+  /* construct output file names based on the time the application started */
+  makefilename (fnouta, "asm", &t);
+  makefilename (fnoutul, "unasm-left", &t);
+  makefilename (fnoutur, "unasm-right", &t);
+  fd  = fopen (fnouta,  "w");
+  fdl = fopen (fnoutul, "w");
+  fdr = fopen (fnoutur, "w");
+
   for (i = 0; i < cnt_reads_left; ++ i)
    {
-     fprintf (fd, "%s\n", ri_left[i]->header);
      if ((strlen (ai[i].data) >= min_asm_len) && (strlen (ai[i].data) <= max_asm_len))
       {
+        fprintf (fd, "%s\n", ri_left[i]->header);
         fprintf (fd, "%s\n", ai[i].data);
         fprintf (fd, "+\n");
         fprintf (fd, "%s\n", ai[i].quality_score);
       }
      else
       {
+        fprintf (fdl, "%s\n", ri_left[i]->header);
+        fprintf (fdr, "%s\n", ri_right[i]->header);
         trim (ri_left[i], min_qual_score, read_size);
         trim_cpl (ri_right[i], min_qual_score, read_size);
-        fprintf (fd, "%s%s\n+\n%s%s\n", ri_left[i]->data, ri_right[i]->data, ri_left[i]->quality_score, ri_right[i]->quality_score);
+        fprintf (fdl, "%s\n+\n%s\n", ri_left[i]->data,  ri_left[i]->quality_score);
+        fprintf (fdr, "%s\n+\n%s\n", ri_right[i]->data, ri_right[i]->quality_score);
       }
      free (ri_left[i]->header);
      free (ri_left[i]->data);
@@ -379,6 +502,8 @@ main (int argc, char * argv[])
   free (ri_left);
   free (ai);
   fclose (fd);
+  fclose (fdl);
+  fclose (fdr);
   
   return (0);
 }
