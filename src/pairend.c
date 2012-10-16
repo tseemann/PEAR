@@ -143,7 +143,7 @@ assembly (struct reads_info * left,
           int               * lps, 
           int               * rps, 
           struct asm_info   * ai,
-          int score_method)
+          int                 score_method) 
 {
   int                   i,j;
   int                   n;
@@ -190,7 +190,6 @@ assembly (struct reads_info * left,
           score = score / (2 * n - i);
           break;
       }
- //    printf ( "QS: %f overlap: %d\n", score, i );
 
      if (score > best_score)
       {
@@ -259,7 +258,6 @@ assembly (struct reads_info * left,
    }
   else
    {
-
      for (i = 0; i < best_overlap; ++ i)
       {
         if (left->quality_score[i] > right->quality_score[n - best_overlap + i])
@@ -391,16 +389,17 @@ main (int argc, char * argv[])
   int                   read_size;
   int                 * qs_lps;
   int                 * qs_rps;
-  int                   min_asm_len, max_asm_len, min_qual_score, score_method;
+  int                   min_asm_len, max_asm_len, min_qual_score, score_method, min_overlap;
   char                  fnouta[50];
   char                  fnoutul[50];
   char                  fnoutur[50];
+  int                   asm_len;
   time_t t;
 
 
   t = time (NULL);
 
-  if (argc != 7)
+  if (argc != 8)
    {
      fprintf(stderr, "Syntax: %s [LEFT-END-READS-FILE] [RIGHT-END-READS-FILE] [MIN-ASSEMBLY-LEN] [MAX-ASSEMBLY-LEN] [QUALITY-SCORE-THRESHOLD]\n", argv[0]);
      return (1);
@@ -410,6 +409,7 @@ main (int argc, char * argv[])
   max_asm_len    = atoi(argv[4]);
   min_qual_score = atoi(argv[5]);
   score_method   = atoi(argv[6]);
+  min_overlap    = atoi(argv[7]);
 
   /* read the two fastq files containing the left-end and right-end reads */
   ri_left  = read_fastq(argv[1], &cnt_reads_left);
@@ -473,7 +473,8 @@ main (int argc, char * argv[])
 
   for (i = 0; i < cnt_reads_left; ++ i)
    {
-     if ((strlen (ai[i].data) >= min_asm_len) && (strlen (ai[i].data) <= max_asm_len))
+     asm_len =  strlen(ai[i].data);
+     if ((asm_len >= min_asm_len) && (asm_len <= max_asm_len) && (2 * read_size - asm_len >= min_overlap))
       {
         fprintf (fd, "%s\n", ri_left[i]->header);
         fprintf (fd, "%s\n", ai[i].data);
