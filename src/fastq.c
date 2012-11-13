@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "fastq.h"
 
-int 
+static int 
 line_count(const char * s)
 {
   int           lc = 0;

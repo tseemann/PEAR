@@ -20,7 +20,6 @@ struct asm_info
    char               * quality_score;
  };
 
-int line_count (const char * s);
 struct reads_info ** read_fastq (const char * file, int * cnt_reads);
 
 #endif
