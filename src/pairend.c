@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include "fastq.h"
-#include "time.h"
 #include "bintest.h"
 #include "args.h"
 #include "emp.h"
@@ -30,27 +29,54 @@ double sc_neq[256][256];
 
 double qs_mul[256][256];
 
-void 
-trim (struct reads_info * read, int min_quality, int len)
+/** @brief Trimming of forward part of unassembled sequence
+  *
+  * Finds two adjacent quality scores that are smaller than the minimum quality score threshold \a min_quality.
+  * It then \e trims the part starting from the rightmost quality score position.
+  *
+  * @param read
+  *   Forward sequence
+  *
+  * @param min_quality
+  *   Minimum quality score threshold
+  *
+  * @param len
+  *   Length of the forward sequence
+  *
+  * @return
+  *   Returns the length of the trimmed sequence
+  */
+int
+trim (struct reads_info * read, int min_quality, int len, double * uncalled)
 {
   int                   i;
 
+  *uncalled = 0;
+
   for (i = 0; i < len - 1; ++ i)
    {
+     if (read->data[i] == 'N' || read->data[i] == 'n') ++ (*uncalled);
      if ( read->quality_score[i] - PHRED_INIT < min_quality && read->quality_score[i + 1] - PHRED_INIT < min_quality)
       {
         read->quality_score[i + 1] = 0;
         read->data[i + 1] = 0;
-        break;
+        *uncalled = (*uncalled) / (i + 1);
+        return i + 1;
       }
    }
+
+  if (read->data[len - 1] ==  'N' || read->data[len - 1] == 'n') ++ (*uncalled);
+  *uncalled = (*uncalled) / len;
+  return (len);
 }
 
 
-void 
-trim_cpl (struct reads_info * read, int min_quality, int len)
+int
+trim_cpl (struct reads_info * read, int min_quality, int len, double * uncalled)
 {
-  int                   i;
+  int                   i, j;
+
+  *uncalled = 0;
 
   for (i = len - 1; i > 0; -- i)
    {
@@ -60,9 +86,16 @@ trim_cpl (struct reads_info * read, int min_quality, int len)
         read->data[i - 1] = 0;
         memmove (read->data, read->data + i, strlen (read->data + i) + 1);
         memmove (read->quality_score, read->quality_score + i, strlen (read->quality_score + i) + 1);
-        break;
+        for (j = 0; read->data[j]; ++ j)
+          if (read->data[j] == 'N' || read->data[j] == 'n') ++ (*uncalled);
+        *uncalled = (*uncalled) / j;
+        return (len - i);
       }
    }
+  for (j = 0; read->data[j]; ++ j)
+    if (read->data[j] == 'N' || read->data[j] == 'n') ++ (*uncalled);
+  *uncalled = (*uncalled) / j;
+  return (len);
 }
 
 void init_scores (int match, int mismatch)
@@ -146,14 +179,14 @@ scoring (char dleft, char dright, char qleft, char qright, int score_method, dou
    }
 }
 
-void 
+int
 assembly (struct reads_info * left, 
           struct reads_info * right, 
           int               * lps, 
           int               * rps, 
           struct asm_info   * ai,
           int                 score_method,
-          struct emp_freq * ef) 
+          double            * uncalled)
 {
   int                   i,j;
   int                   n;
@@ -162,6 +195,8 @@ assembly (struct reads_info * left,
   int                   best_overlap = 0;       /* overlap of the best alignment */
   int                   run_through = 0;
   int                   nMatch;
+  int asm_len = 0;
+  *uncalled = 0;
   
   n = strlen (left->data);
   rps[0] = 0;
@@ -282,6 +317,7 @@ assembly (struct reads_info * left,
 
      ai->data[2 * n - best_overlap]          = 0;
      ai->quality_score[2 * n - best_overlap] = 0;
+     asm_len = 2 * n - best_overlap;
    }
   else
    {
@@ -312,7 +348,15 @@ assembly (struct reads_info * left,
 
      ai->data[best_overlap]          = 0;
      ai->quality_score[best_overlap] = 0;
+     asm_len = best_overlap;
+    
    }
+
+  for (j = 0; j < asm_len; ++ j)
+    if (ai->data[j] == 'N' || ai->data[j] == 'n') ++(*uncalled);
+  *uncalled = (*uncalled) / asm_len;
+
+  return (asm_len);
 }
 
 inline void
@@ -447,15 +491,17 @@ validate_input (int nleft, int nright)
   return (1);
 }
 
-void
-makefilename (char * fn, const char * prefix, time_t * t)
+char *
+makefilename (const char * prefix, const char * suffix)
 {
-  struct tm *tmp;
+  char * filename;
 
-  tmp=localtime (t);
-  strcpy (fn, prefix);
-  strftime (fn + strlen(prefix), 50 - strlen(prefix), "%Y%m%d%H%M%S", tmp);
-  strcat (fn, ".out");
+  filename = (char *) malloc ((strlen(prefix) + strlen(suffix) + 1) * sizeof (char));
+
+  strcpy (filename, prefix);
+  strcat (filename, suffix);
+
+  return (filename);
 }
 
 
@@ -509,28 +555,24 @@ precomp_binom_test (int reads_cnt, int read_len, struct reads_info ** ri_left, s
 int 
 main (int argc, char * argv[])
 {
-  int                   i;
+  int                   i, len;
   struct reads_info  ** ri_left;
   struct reads_info  ** ri_right;
   int                   cnt_reads_left;
   int                   cnt_reads_right;
   char                * rev;
   struct asm_info     * ai;
-  FILE                * fd,* fdl, * fdr; 
   int                   read_size;
   int                 * qs_lps;
   int                 * qs_rps;
-  char                  fnouta[50];
-  char                  fnoutul[50];
-  char                  fnoutur[50];
+  char                * out[4];
+  FILE                * fd[4];
   int                   asm_len;
-  time_t t;
+  int                 * flags;
+  double                p_value, geom_mean, uncalled, uncalled_forward, uncalled_reverse;
   struct user_args      sw;
   struct emp_freq * ef;
 
-
-  t = time (NULL);
-  
   if (!decode_switches (argc, argv, &sw))
    {
      /* TODO: Validate overlap */
@@ -579,50 +621,94 @@ main (int argc, char * argv[])
 
   init_scores(1, 1);
 
+  flags = (int *) calloc (cnt_reads_left, sizeof (int));
 
   //#pragma omp parallel shared(ri_left,ri_right,ai) private(qs_lps, qs_rps, i) 
-  #pragma omp parallel shared(ri_left,ri_right,ai) private(qs_lps, qs_rps, i) 
+  #pragma omp parallel shared(ri_left,ri_right,ai) private(qs_lps, qs_rps, i, asm_len, uncalled) 
   {
     /* allocate two auxiliary arrays for storing the prefix sum of quality
        scores of the two reads */
     qs_lps = (int *) calloc (strlen (ri_left[0]->data) + 1, sizeof(int));
     qs_rps = (int *) calloc (strlen (ri_left[0]->data) + 1, sizeof(int));
 
+    /* flags[i] = 1 (assembled)  0 (discarded) 2 (unassembled) */
     #pragma omp for
     for (i = 0; i < cnt_reads_left; ++ i)
      {
-       assembly (ri_left[i], ri_right[i], qs_lps, qs_rps, &ai[i], sw.score_method, ef);
+       asm_len = assembly (ri_left[i], ri_right[i], qs_lps, qs_rps, &ai[i], sw.score_method, &uncalled);
+       geom_mean = p_value = 100000;
+   //    asm_len = strlen (ai[i].data);
+       //if ((asm_len >= sw.min_asm_len) && (asm_len <= sw.max_asm_len) && (2 * read_size - asm_len >= sw.min_overlap))
+       if (2 * read_size - asm_len >= sw.min_overlap && p_value >= sw.p_value)
+        {
+          if ( (asm_len >= sw.min_asm_len) && (asm_len <= sw.max_asm_len) && (uncalled <= sw.max_uncalled)) //&& (geom_mean >= sw.geom_mean) )
+           {
+             flags[i] = 1;    /* read goes to assembled */
+           }
+          else
+           {
+             flags[i] = 0;    /* read goes to discarded */
+           }
+        }
+       else
+        {
+          flags[i] = 2;   /* read is unassembled */
+        }
+
      }
     free (qs_lps);
     free (qs_rps);
   }
   
-  /* construct output file names based on the time the application started */
-  makefilename (fnouta, "asm", &t);
-  makefilename (fnoutul, "unasm-left", &t);
-  makefilename (fnoutur, "unasm-right", &t);
-  fd  = fopen (fnouta,  "w");
-  fdl = fopen (fnoutul, "w");
-  fdr = fopen (fnoutur, "w");
+  /* construct output file names */
+  out[0] = makefilename (sw.outfile, ".assembled.fastq");
+  out[1] = makefilename (sw.outfile, ".unassembled.forward.fastq");
+  out[2] = makefilename (sw.outfile, ".unassembled.reverse.fastq");
+  out[3] = makefilename (sw.outfile, ".discarded.fastq");
+
+  fd[0] = fopen (out[0], "w");
+  fd[1] = fopen (out[1], "w");
+  fd[2] = fopen (out[2], "w");
+  fd[3] = fopen (out[3], "w");
 
   for (i = 0; i < cnt_reads_left; ++ i)
    {
-     asm_len =  strlen(ai[i].data);
-     if ((asm_len >= sw.min_asm_len) && (asm_len <= sw.max_asm_len) && (2 * read_size - asm_len >= sw.min_overlap))
+      if (flags[i] == 1)        /* assembled reads */
       {
-        fprintf (fd, "%s\n", ri_left[i]->header);
-        fprintf (fd, "%s\n", ai[i].data);
-        fprintf (fd, "+\n");
-        fprintf (fd, "%s\n", ai[i].quality_score);
+        fprintf (fd[0], "%s\n", ri_left[i]->header);
+        fprintf (fd[0], "%s\n", ai[i].data);
+        fprintf (fd[0], "+\n");
+        fprintf (fd[0], "%s\n", ai[i].quality_score);
       }
-     else
+     else if (flags[i] == 0)    /* discarded part */
       {
-        fprintf (fdl, "%s\n", ri_left[i]->header);
-        fprintf (fdr, "%s\n", ri_right[i]->header);
-        trim (ri_left[i], sw.qual_thres, read_size);
-        trim_cpl (ri_right[i], sw.qual_thres, read_size);
-        fprintf (fdl, "%s\n+\n%s\n", ri_left[i]->data,  ri_left[i]->quality_score);
-        fprintf (fdr, "%s\n+\n%s\n", ri_right[i]->data, ri_right[i]->quality_score);
+        fprintf (fd[3], "%s\n", ri_left[i]->header);
+        fprintf (fd[3], "%s\n+\n%s\n", ri_left[i]->data,  ri_left[i]->quality_score);
+        fprintf (fd[3], "%s\n", ri_right[i]->header);
+        fprintf (fd[3], "%s\n+\n%s\n", ri_right[i]->data,  ri_right[i]->quality_score);
+
+      }
+     else    /* unassembled part */
+      {
+        len = trim (ri_left[i], sw.qual_thres, read_size, &uncalled_forward);
+        len += trim_cpl (ri_right[i], sw.qual_thres, read_size, &uncalled_reverse);
+        len = 100;
+        if (len <= sw.min_asm_len || (uncalled_forward >= sw.max_uncalled || uncalled_reverse >= sw.max_uncalled)) // && (geom_mean_forward <= sw.geom_mean || geom_mean_reverse <= sw.geom_mean))
+         {   /* discarded */
+//           printf ("WE HAVE A BUG %f %f %f\n", uncalled_forward, uncalled_reverse, sw.max_uncalled );
+           /* Maybe consider printing the untrimmed sequences */
+           fprintf (fd[3], "%s\n", ri_left[i]->header);
+           fprintf (fd[3], "%s\n+\n%s\n", ri_left[i]->data,  ri_left[i]->quality_score);
+           fprintf (fd[3], "%s\n", ri_right[i]->header);
+           fprintf (fd[3], "%s\n+\n%s\n", ri_right[i]->data, ri_right[i]->quality_score); /* printing the reverse compliment of the original sequence */
+         }
+        else   /* unassembled */
+         {
+           fprintf (fd[1], "%s\n", ri_left[i]->header);
+           fprintf (fd[2], "%s\n", ri_right[i]->header);
+           fprintf (fd[1], "%s\n+\n%s\n", ri_left[i]->data,  ri_left[i]->quality_score);
+           fprintf (fd[2], "%s\n+\n%s\n", ri_right[i]->data, ri_right[i]->quality_score); /* printing the reverse compliment of the original sequence */
+         }
       }
      free (ri_left[i]->header);
      free (ri_left[i]->data);
@@ -637,9 +723,12 @@ main (int argc, char * argv[])
   free (ri_left);
   free (ai);
   free (ef);
-  fclose (fd);
-  fclose (fdl);
-  fclose (fdr);
+
+
+  fclose (fd[0]);
+  fclose (fd[1]);
+  fclose (fd[2]);
+  fclose (fd[3]);
   
   return (0);
 }
