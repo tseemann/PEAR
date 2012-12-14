@@ -1,6 +1,6 @@
 all: pairend
 
-pairend: pairend.o fastq.o bintest.o args.o emp.c
+pairend: pairend.o fastq.o bintest.o args.o emp.c statistics.o
 	gcc -Wall -fopenmp -fomit-frame-pointer -O2 $+ -lm -o $@
 
 pairend.o: pairend.c
@@ -18,8 +18,10 @@ args.o: args.c
 emp.o: emp.c
 	gcc -c -Wall -fopenmp -fomit-frame-pointer -lm -O2 $+ -o $@
 
+statistics.o: statistics.c
+	gcc -c -Wall -fopenmp -fomit-frame-pointer -lm -O2 $+ -o $@
 
 clean:
-	-rm pairend pairend.o fastq.o args.o bintest.o
+	-rm pairend pairend.o fastq.o args.o bintest.o statistics.o
 
 .PHONY: all clean

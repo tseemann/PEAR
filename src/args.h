@@ -24,7 +24,7 @@ struct user_args
    double       p_value;      /**< @brief P-value to use */
    double       geom_mean;    /**< @brief Geometric mean */
    char       * outfile;      /**< @brief Output filename to use */
-   int          min_trim_len  /**< @brief Minimum trim length */
+   int          min_trim_len;  /**< @brief Minimum trim length */
  };
 
 void usage (void);

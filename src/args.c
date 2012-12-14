@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include <string.h>
 #include "args.h"
 
 static struct option long_options[] =
@@ -49,9 +50,9 @@ void usage (void)
                    "                                        to 0. (default: 0)\n");
   fprintf (stdout, "  -n, --min-assembly-length   <int>     Minimum possible size of the assembled sequence.\n");
   fprintf (stdout, "                                        To disable it set to 0. (default: 0)\n");
-  fprintf (stdout, "  -t, --min-trim-length       <int>     Minimum length of reads after trimming the low quality"
+  fprintf (stdout, "  -t, --min-trim-length       <int>     Minimum length of reads after trimming the low quality\n"
                    "                                        part (default: 1)\n");
-  fprintf (stdout, "  -q, --quality-threshold     <int>     Quality score threshold used for trimming the low quality"
+  fprintf (stdout, "  -q, --quality-threshold     <int>     Quality score threshold used for trimming the low quality\n"
                    "                                        part of the reads (default: 0)\n");
   fprintf (stdout, "  -u, --max-uncalled-base     <float>   Maximal proportion of uncalled bases. A number between 0 and 1.\n"
                    "                                        Set to 0 to discard all reads that contain uncalled bases, or\n"

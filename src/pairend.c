@@ -126,22 +126,38 @@ void init_scores (int match, int mismatch)
    }
 }
 
-inline void 
-scoring (char dleft, char dright, char qleft, char qright, int score_method, double * score)
-{
-  //double                ex, ey;
 
-  if (dright != 'N' && dleft != 'N' && dright == dleft)
+/* TODO: Remember to speed up this function by doing something with the multiplication and division of match/mismatch */
+inline void 
+scoring (char dleft, char dright, char qleft, char qright, int score_method, double * score, int match, int mismatch)
+{
+  if (dleft == 'N' || dright == 'N')       /* one of them is N */
    {
      switch (score_method)
       {
         case 1:
-          *score += (qright - PHRED_INIT) + (qleft - PHRED_INIT);
+          //*score += sc_eq[(int)qright][(int)qleft] - (1 - sc_eq[(int)qright][(int)qleft] / match) * mismatch;
+          *score += 0.25 * match - (1 - 0.25) * mismatch;
+          //TODO: Change 0.25 to q, where q = pa^2 + pc^2 + ....
           break;
         case 3:
-          //ex      = pow (10.0, - (qright - PHRED_INIT) / 10.0);
-          //ey      = pow (10.0, - (qleft  - PHRED_INIT) / 10.0);
-          //*score += (1 - ex) * (1 - ey) + (ex * ey) / 3.0;
+          //*score += sc_eq[(int)qright][(int)qleft];
+          *score -= (1 - 0.25) * mismatch; 
+          //TODO: Change 0.25 to q, where q = pa^2 + pc^2 + ....
+          break;
+        case 4:
+          *score -= 1;
+          break;
+      }
+   }
+  else if (dleft == dright)     /* equal */
+   {
+     switch (score_method)
+      {
+        case 1:
+          *score += sc_eq[(int)qright][(int)qleft] - (1 - sc_eq[(int)qright][(int)qleft] / match) * mismatch;
+          break;
+        case 3:
           *score += sc_eq[(int)qright][(int)qleft];
           break;
         case 4:
@@ -149,40 +165,19 @@ scoring (char dleft, char dright, char qleft, char qright, int score_method, dou
           break;
       }
    }
-  else
+  else          /* not equal */
    {
-     if (dright == 'N' && dleft == 'N')
+     switch (score_method)
       {
-        switch (score_method)
-         {
-           case 1:
-             *score += abs ((qright - PHRED_INIT) - (qleft - PHRED_INIT));
-             break;
-           case 3:
-             //ex      = pow (10.0, - (qright - PHRED_INIT) / 10.0);
-             //ey      = pow (10.0, - (qleft  - PHRED_INIT) / 10.0);
-             //*score -= (1 - (1.0 / 3.0) * (1 - ex) * ey - (1.0 / 3.0) * (1 - ey) * ex - (2.0 / 9.0) * ex * ey);
-             *score -= sc_neq[(int)qright][(int)qleft];
-             break;
-           case 4:
-             *score -= 1;
-             break;
-         }
-      }
-     else
-      {
-        switch (score_method)
-         {
-           case 1:
-             *score += abs ((qright - PHRED_INIT) - (qleft - PHRED_INIT));
-             break;
-           case 3:
-             *score -= 0.75;
-             break;
-           case 4:
-             *score -= 1;
-             break;
-         }
+        case 1:
+          *score = *score - (sc_neq[(int)qright][(int)qleft] - (1 - sc_neq[(int)qright][(int)qleft] / mismatch) * match);
+          break;
+        case 3:
+          *score -= sc_neq[(int)qright][(int)qleft];
+          break;
+        case 4:
+          *score -= 1;
+          break;
       }
    }
 }
@@ -197,7 +192,9 @@ assembly (struct reads_info * left,
           double            * uncalled,
           double              p_value,
           int                 min_overlap,
-          int               * kassian_result)
+          int               * kassian_result,
+          int                 match_score,
+          int                 mismatch_score)
 {
   int                   i,j;
   int                   n;
@@ -241,7 +238,7 @@ assembly (struct reads_info * left,
      /* sum up the quality scores of the overlapping regions */
      for (j = 0; j < i; ++ j)
       {
-        scoring (left->data[n - i + j], right->data[j], left->quality_score[n - i + j], right->quality_score[j], score_method, &score);
+        scoring (left->data[n - i + j], right->data[j], left->quality_score[n - i + j], right->quality_score[j], score_method, &score, match_score, mismatch_score);
         if (left->data[n - i + j] == right->data[j]) ++nMatch;
       }
 
@@ -271,7 +268,7 @@ assembly (struct reads_info * left,
      nMatch = 0;
      for (j = 0; j < i; ++j)
       {
-        scoring (left->data[j], right->data[n - i + j], left->quality_score[j], right->quality_score[n - i + j], score_method, &score);
+        scoring (left->data[j], right->data[n - i + j], left->quality_score[j], right->quality_score[n - i + j], score_method, &score, match_score, mismatch_score);
         if (left->data[n - i + j] == right->data[j]) ++nMatch;
       }
 
@@ -581,7 +578,7 @@ precomp_binom_test (int reads_cnt, int read_len, struct reads_info ** ri_left, s
 int 
 main (int argc, char * argv[])
 {
-  int                   i, len;
+  int                   i, trim_len_fw, trim_len_rev;
   struct reads_info  ** ri_left;
   struct reads_info  ** ri_right;
   int                   cnt_reads_left;
@@ -595,7 +592,8 @@ main (int argc, char * argv[])
   FILE                * fd[4];
   int                   asm_len;
   int                 * flags;
-  double                geom_mean, uncalled, uncalled_forward, uncalled_reverse;
+  double                uncalled, uncalled_forward, uncalled_reverse;
+  //double geom_mean;
   struct user_args      sw;
   struct emp_freq * ef;
   int kassian_result;
@@ -662,27 +660,31 @@ main (int argc, char * argv[])
     #pragma omp for
     for (i = 0; i < cnt_reads_left; ++ i)
      {
-       asm_len = assembly (ri_left[i], ri_right[i], qs_lps, qs_rps, &ai[i], sw.score_method, &uncalled, sw.p_value, sw.min_overlap, &kassian_result);
-       geom_mean = 100000;
-   //    asm_len = strlen (ai[i].data);
-       //if ((asm_len >= sw.min_asm_len) && (asm_len <= sw.max_asm_len) && (2 * read_size - asm_len >= sw.min_overlap))
-       /* TODO: BUG BUG BUG -> FIX THE FOLLOWING LINE for runthrought case */
-       if (2 * read_size - asm_len >= sw.min_overlap && kassian_result)
+       asm_len = assembly (ri_left[i], ri_right[i], qs_lps, qs_rps, &ai[i], sw.score_method, &uncalled, sw.p_value, sw.min_overlap, &kassian_result, match_score, mismatch_score);
+//       geom_mean = 100000;
+
+       if (asm_len < read_size)   /* runthrough case */
         {
-          if ( (asm_len >= sw.min_asm_len) && (asm_len <= sw.max_asm_len) && (uncalled <= sw.max_uncalled)) //&& (geom_mean >= sw.geom_mean) )
+          if (asm_len >= sw.min_overlap && asm_len >= sw.min_asm_len && asm_len <= sw.max_asm_len && uncalled <= sw.max_uncalled && kassian_result)
            {
-             flags[i] = 1;    /* read goes to assembled */
+             flags[i] = 1;     /* assembled */
            }
           else
            {
-             flags[i] = 0;    /* read goes to discarded */
+             flags[i] = 2;    /* not assembled */
            }
         }
-       else
+       else     /* normal case */
         {
-          flags[i] = 2;   /* read is unassembled */
+          if (2 * read_size - asm_len >= sw.min_overlap && asm_len >= sw.min_asm_len && asm_len <= sw.max_asm_len && uncalled <= sw.max_uncalled && kassian_result)
+           {
+             flags[i] = 1;    /* assembled */
+           }
+          else
+           {
+             flags[i] = 2;   /* not assembled */
+           }
         }
-
      }
     free (qs_lps);
     free (qs_rps);
@@ -708,21 +710,13 @@ main (int argc, char * argv[])
         fprintf (fd[0], "+\n");
         fprintf (fd[0], "%s\n", ai[i].quality_score);
       }
-     else if (flags[i] == 0)    /* discarded part */
-      {
-        fprintf (fd[3], "%s\n", ri_left[i]->header);
-        fprintf (fd[3], "%s\n+\n%s\n", ri_left[i]->data,  ri_left[i]->quality_score);
-        fprintf (fd[3], "%s\n", ri_right[i]->header);
-        fprintf (fd[3], "%s\n+\n%s\n", ri_right[i]->data,  ri_right[i]->quality_score);
-
-      }
      else    /* unassembled part */
       {
-        len = trim (ri_left[i], sw.qual_thres, read_size, &uncalled_forward);
-        len += trim_cpl (ri_right[i], sw.qual_thres, read_size, &uncalled_reverse);
-        len = 100;
-        if (len <= sw.min_asm_len || (uncalled_forward >= sw.max_uncalled || uncalled_reverse >= sw.max_uncalled)) // && (geom_mean_forward <= sw.geom_mean || geom_mean_reverse <= sw.geom_mean))
+        trim_len_fw  = trim (ri_left[i], sw.qual_thres, read_size, &uncalled_forward);
+        trim_len_rev = trim_cpl (ri_right[i], sw.qual_thres, read_size, &uncalled_reverse);
+        if (trim_len_fw < sw.min_trim_len || trim_len_rev < sw.min_trim_len || uncalled_forward >= sw.max_uncalled || uncalled_reverse >= sw.max_uncalled)
          {   /* discarded */
+        // && (geom_mean_forward <= sw.geom_mean || geom_mean_reverse <= sw.geom_mean))
 //           printf ("WE HAVE A BUG %f %f %f\n", uncalled_forward, uncalled_reverse, sw.max_uncalled );
            /* Maybe consider printing the untrimmed sequences */
            fprintf (fd[3], "%s\n", ri_left[i]->header);
