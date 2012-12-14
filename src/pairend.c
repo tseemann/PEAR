@@ -164,31 +164,161 @@ void init_scores (int match, int mismatch, struct emp_freq * ef)
         sc_neq[i][j] = mismatch * (1 - (1.0 / 3.0) * (1 - ex) * ey - (1.0 / 3.0) * (1 - ey) * ex - (2.0 / 9.0) * ex * ey);
         qs_mul[i][j] = ex * ey;
 
-        sc_eqA[i][j] = (1 - ex) * (1 - ey) + (ex * ey) * pcgt2 / p2cgt;
-        sc_eqC[i][j] = (1 - ex) * (1 - ey) + (ex * ey) * pagt2 / p2agt;
-        sc_eqG[i][j] = (1 - ex) * (1 - ey) + (ex * ey) * pact2 / p2act;
-        sc_eqT[i][j] = (1 - ex) * (1 - ey) + (ex * ey) * pacg2 / p2acg;
+        sc_eqA[i][j] = match * (1 - ex) * (1 - ey) + (ex * ey) * pcgt2 / p2cgt;
+        sc_eqC[i][j] = match * (1 - ex) * (1 - ey) + (ex * ey) * pagt2 / p2agt;
+        sc_eqG[i][j] = match * (1 - ex) * (1 - ey) + (ex * ey) * pact2 / p2act;
+        sc_eqT[i][j] = match * (1 - ex) * (1 - ey) + (ex * ey) * pacg2 / p2acg;
 
-        sc_neqAC[i][j] = (1 - ey) * ex * (ef->pc / pcgt) + (1 - ex) * ey * (ef->pa / pagt) + ex * ey * (pg2 + pt2) / pgt2;
-        sc_neqCA[i][j] = (1 - ey) * ex * (ef->pa / pagt) + (1 - ex) * ey * (ef->pc / pcgt) + ex * ey * (pg2 + pt2) / pgt2;
+        sc_neqAC[i][j] = mismatch * ((1 - ey) * ex * (ef->pc / pcgt) + (1 - ex) * ey * (ef->pa / pagt) + ex * ey * (pg2 + pt2) / pgt2);
+        sc_neqCA[i][j] = mismatch * ((1 - ey) * ex * (ef->pa / pagt) + (1 - ex) * ey * (ef->pc / pcgt) + ex * ey * (pg2 + pt2) / pgt2);
 
-        sc_neqAG[i][j] = (1 - ey) * ex * (ef->pg / pcgt) + (1 - ex) * ey * (ef->pa / pact) + ex * ey * (pc2 + pt2) / pct2;
-        sc_neqGA[i][j] = (1 - ey) * ex * (ef->pa / pact) + (1 - ex) * ey * (ef->pg / pcgt) + ex * ey * (pc2 + pt2) / pct2;
+        sc_neqAG[i][j] = mismatch * ((1 - ey) * ex * (ef->pg / pcgt) + (1 - ex) * ey * (ef->pa / pact) + ex * ey * (pc2 + pt2) / pct2);
+        sc_neqGA[i][j] = mismatch * ((1 - ey) * ex * (ef->pa / pact) + (1 - ex) * ey * (ef->pg / pcgt) + ex * ey * (pc2 + pt2) / pct2);
 
-        sc_neqAT[i][j] = (1 - ey) * ex * (ef->pt / pcgt) + (1 - ex) * ey * (ef->pa / pacg) + ex * ey * (pc2 + pg2) / pcg2;
-        sc_neqTA[i][j] = (1 - ey) * ex * (ef->pa / pacg) + (1 - ex) * ey * (ef->pt / pcgt) + ex * ey * (pc2 + pg2) / pcg2;
+        sc_neqAT[i][j] = mismatch * ((1 - ey) * ex * (ef->pt / pcgt) + (1 - ex) * ey * (ef->pa / pacg) + ex * ey * (pc2 + pg2) / pcg2);
+        sc_neqTA[i][j] = mismatch * ((1 - ey) * ex * (ef->pa / pacg) + (1 - ex) * ey * (ef->pt / pcgt) + ex * ey * (pc2 + pg2) / pcg2);
 
-        sc_neqCG[i][j] = (1 - ey) * ex * (ef->pg / pagt) + (1 - ex) * ey * (ef->pc / pact) + ex * ey * (pa2 + pt2) / pat2;
-        sc_neqGC[i][j] = (1 - ey) * ex * (ef->pc / pact) + (1 - ex) * ey * (ef->pg / pagt) + ex * ey * (pa2 + pt2) / pat2;
+        sc_neqCG[i][j] = mismatch * ((1 - ey) * ex * (ef->pg / pagt) + (1 - ex) * ey * (ef->pc / pact) + ex * ey * (pa2 + pt2) / pat2);
+        sc_neqGC[i][j] = mismatch * ((1 - ey) * ex * (ef->pc / pact) + (1 - ex) * ey * (ef->pg / pagt) + ex * ey * (pa2 + pt2) / pat2);
 
-        sc_neqCT[i][j] = (1 - ey) * ex * (ef->pt / pagt) + (1 - ex) * ey * (ef->pc / pacg) + ex * ey * (pa2 + pg2) / pag2;
-        sc_neqTC[i][j] = (1 - ey) * ex * (ef->pc / pacg) + (1 - ex) * ey * (ef->pt / pagt) + ex * ey * (pa2 + pg2) / pag2;
+        sc_neqCT[i][j] = mismatch * ((1 - ey) * ex * (ef->pt / pagt) + (1 - ex) * ey * (ef->pc / pacg) + ex * ey * (pa2 + pg2) / pag2);
+        sc_neqTC[i][j] = mismatch * ((1 - ey) * ex * (ef->pc / pacg) + (1 - ex) * ey * (ef->pt / pagt) + ex * ey * (pa2 + pg2) / pag2);
 
-        sc_neqGT[i][j] = (1 - ey) * ex * (ef->pt / pact) + (1 - ex) * ey * (ef->pg / pacg) + ex * ey * (pa2 + pc2) / pac2;
-        sc_neqTG[i][j] = (1 - ey) * ex * (ef->pg / pacg) + (1 - ex) * ey * (ef->pt / pact) + ex * ey * (pa2 + pc2) / pac2;
+        sc_neqGT[i][j] = mismatch * ((1 - ey) * ex * (ef->pt / pact) + (1 - ex) * ey * (ef->pg / pacg) + ex * ey * (pa2 + pc2) / pac2);
+        sc_neqTG[i][j] = mismatch * ((1 - ey) * ex * (ef->pg / pacg) + (1 - ex) * ey * (ef->pt / pact) + ex * ey * (pa2 + pc2) / pac2);
      }
    }
 }
+
+inline void
+scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, double * score, int match, int mismatch, struct emp_freq * ef)
+{
+  if (dleft == 'N' || dright == 'N')       /* one of them is N */
+   {
+     switch (score_method)
+      {
+        case 1:
+          //*score += sc_eq[(int)qright][(int)qleft] - (1 - sc_eq[(int)qright][(int)qleft] / match) * mismatch;
+          *score += 0.25 * match - (1 - 0.25) * mismatch;
+          //TODO: Change 0.25 to q, where q = pa^2 + pc^2 + ....
+          break;
+        case 3:
+          //*score += sc_eq[(int)qright][(int)qleft];
+          *score -= (1 - ef->q) * mismatch; 
+          //TODO: Change 0.25 to q, where q = pa^2 + pc^2 + ....
+          break;
+        case 4:
+          *score -= 1;
+          break;
+      }
+   }
+  else if (dleft == dright)     /* equal */
+   {
+     switch (score_method)
+      {
+        case 1:
+          *score += sc_eq[(int)qright][(int)qleft] - (1 - sc_eq[(int)qright][(int)qleft] / match) * mismatch;
+          break;
+        case 3:
+//          *score += sc_eq[(int)qright][(int)qleft];
+          switch (dleft)
+           {
+             case 'A':
+               *score += sc_eqA[(int)qright][(int)qleft];
+               break;
+             case 'C':
+               *score += sc_eqC[(int)qright][(int)qleft];
+               break;
+             case 'G':
+               *score += sc_eqG[(int)qright][(int)qleft];
+               break;
+             case 'T':
+               *score += sc_eqT[(int)qright][(int)qleft];
+               break;
+           }
+          break;
+        case 4:
+          *score += 1;
+          break;
+      }
+   }
+  else          /* not equal */
+   {
+     switch (score_method)
+      {
+        case 1:
+          *score = *score - (sc_neq[(int)qright][(int)qleft] - (1 - sc_neq[(int)qright][(int)qleft] / mismatch) * match);
+          break;
+        case 3:
+          //*score -= sc_neq[(int)qright][(int)qleft];
+          switch  (dleft)
+           {
+             case 'A':
+               switch (dright)
+                {
+                  case 'C':
+                    *score -= sc_neqAC[(int)qleft][(int)qright];
+                    break;
+                  case 'G':
+                    *score -= sc_neqAG[(int)qleft][(int)qright];
+                    break;
+                  case 'T':
+                    *score -= sc_neqAT[(int)qleft][(int)qright];
+                    break;
+                }
+               break;
+             case 'C':
+               switch (dright)
+                {
+                  case 'A':
+                    *score -= sc_neqCA[(int)qleft][(int)qright];
+                    break;
+                  case 'G':
+                    *score -= sc_neqCG[(int)qleft][(int)qright];
+                    break;
+                  case 'T':
+                    *score -= sc_neqCT[(int)qleft][(int)qright];
+                    break;
+                }
+               break;
+             case 'G':
+               switch (dright)
+                {
+                  case 'A':
+                    *score -= sc_neqGA[(int)qleft][(int)qright];
+                    break;
+                  case 'C':
+                    *score -= sc_neqGC[(int)qleft][(int)qright];
+                    break;
+                  case 'T':
+                    *score -= sc_neqGT[(int)qleft][(int)qright];
+                    break;
+                }
+               break;
+             case 'T':
+               switch (dright)
+                {
+                  case 'A':
+                    *score -= sc_neqTA[(int)qleft][(int)qright];
+                    break;
+                    break;
+                  case 'C':
+                    *score -= sc_neqTC[(int)qleft][(int)qright];
+                    break;
+                  case 'G':
+                    *score -= sc_neqTG[(int)qleft][(int)qright];
+                    break;
+                }
+               break;
+           }
+          break;
+        case 4:
+          *score -= 1;
+          break;
+      }
+   }
+}
+
 
 
 
@@ -246,6 +376,199 @@ scoring (char dleft, char dright, char qleft, char qright, int score_method, dou
       }
    }
 }
+
+int
+assembly_ef (struct reads_info * left, 
+          struct reads_info * right, 
+          int               * lps, 
+          int               * rps, 
+          struct asm_info   * ai,
+          int                 score_method,
+          double            * uncalled,
+          double              p_value,
+          int                 min_overlap,
+          int               * kassian_result,
+          int                 match_score,
+          int                 mismatch_score,
+          struct emp_freq  * ef)
+{
+  int                   i,j;
+  int                   n;
+  double                score;
+  double                best_score = 0;
+  int                   best_overlap = 0;       /* overlap of the best alignment */
+  int                   run_through = 0;
+  int                   nMatch;
+  double exp_match;
+  int asm_len = 0;
+  *uncalled = 0;
+  
+  n = strlen (left->data);
+  rps[0] = 0;
+  lps[0] = 0;
+
+  /* compute the prefix sum of quality scores */
+  for (i = 1; i <= n; ++ i)
+   {
+     lps[i] = lps[i - 1] +  left->quality_score[i - 1] - PHRED_INIT;
+     rps[i] = rps[i - 1] + right->quality_score[i - 1] - PHRED_INIT;
+   }
+
+  /* compute score for every overlap */
+  score = 0;
+  for (i = 0; i <= n; ++ i)    /* the size of the overlap */
+   {
+     /* sum up the quality scores of the nonoverlapping regions */
+     switch (score_method)
+      {
+        case 1:
+          score  = lps[n - i];
+          score += rps[n] - rps[i];
+          break;
+        case 3:
+        case 4:
+          score = 0;
+      }
+     nMatch = 0;
+
+     /* sum up the quality scores of the overlapping regions */
+     for (j = 0; j < i; ++ j)
+      {
+        scoring_ef (left->data[n - i + j], right->data[j], left->quality_score[n - i + j], right->quality_score[j], score_method, &score, match_score, mismatch_score, ef);
+        if (left->data[n - i + j] == right->data[j]) ++nMatch;
+      }
+
+
+     switch (score_method)
+      {
+        case 1:
+          score = score / (2 * n - i);
+          break;
+        case 3:
+          /* binomial test */
+          //if (precomp[(i + 1) * i / 2 - 1 + nMatch] < 0.5) score = 0;
+          break;
+      }
+
+     if (score > best_score)
+      {
+        best_overlap = i;
+        best_score   = score;
+      }
+   }
+
+  /* compute for score for runthrough case */
+  for (i = n - 1; i > 0; --i)
+   {
+     score  = 0;
+     nMatch = 0;
+     for (j = 0; j < i; ++j)
+      {
+        scoring_ef (left->data[j], right->data[n - i + j], left->quality_score[j], right->quality_score[n - i + j], score_method, &score, match_score, mismatch_score, ef);
+        if (left->data[n - i + j] == right->data[j]) ++nMatch;
+      }
+
+
+     switch (score_method)
+      {
+        case 1:
+          score = score / i;
+          break;
+      }
+//     printf ( "runthrough QS: %f overlap: %d\n", score, i );
+     if (score > best_score)
+      {
+        run_through  = 1;
+        best_overlap = i;
+        best_score   = score;
+      }
+   }
+
+  /* do the assembly */
+  if (!run_through)
+   {
+     memcpy (ai->data,          left->data,          n - best_overlap);
+     memcpy (ai->quality_score, left->quality_score, n - best_overlap);
+
+     exp_match = assemble_overlap (left, right, n - best_overlap, 0, best_overlap, ai);
+     
+     /*
+     for (i = 0; i < best_overlap; ++i)
+      {
+        if (left->quality_score[n - best_overlap + i] > right->quality_score[i])
+         {
+           ai->data[n - best_overlap + i] = left->data[n - best_overlap + i];
+         }
+        else
+         {
+           ai->data[n - best_overlap + i] = right->data[i];
+         }
+
+        if (right->data[i] != 'N' && left->data[n - best_overlap + i] != 'N' && right->data[i] == left->data[n - best_overlap + i])
+         {
+           ai->quality_score[n - best_overlap + i] = (right->quality_score[i] - PHRED_INIT) + (left->quality_score[n - best_overlap + i] - PHRED_INIT) + PHRED_INIT;   // THIS IS OK
+         }
+        else
+         {
+           
+           ai->quality_score[n - best_overlap + i] = abs ((right->quality_score[i] - PHRED_INIT) - (left->quality_score[n - best_overlap + i] - PHRED_INIT)) + PHRED_INIT;
+         }
+      }
+     */
+     
+     memcpy (ai->data          + n, right->data          + best_overlap,  n - best_overlap);
+     memcpy (ai->quality_score + n, right->quality_score + best_overlap,  n - best_overlap);
+
+
+     ai->data[2 * n - best_overlap]          = 0;
+     ai->quality_score[2 * n - best_overlap] = 0;
+     asm_len = 2 * n - best_overlap;
+   }
+  else
+   {
+     exp_match = assemble_overlap (left, right, 0, n - best_overlap, best_overlap, ai);
+     
+     /*
+     for (i = 0; i < best_overlap; ++ i)
+      {
+        if (left->quality_score[i] > right->quality_score[n - best_overlap + i])
+         {
+           ai->data[i] = left->data[i];
+         }
+        else
+         {
+           ai->data[i] = right->data[n - best_overlap + i];
+         }
+
+        if ( right->data[n - best_overlap + i] != 'N' && left->data[i] != 'N' && right->data[n - best_overlap + i] == left->data[i])
+         {
+           ai->quality_score[i] = (right->quality_score[n - best_overlap + i] - PHRED_INIT) + (left->quality_score[i] - PHRED_INIT) + PHRED_INIT;
+         }
+        else
+         {
+           ai->quality_score[i] = abs ((right->quality_score[n - best_overlap + i] - PHRED_INIT) - (left->quality_score[i] - PHRED_INIT)) + PHRED_INIT;
+         }
+      }
+     */
+
+     ai->data[best_overlap]          = 0;
+     ai->quality_score[best_overlap] = 0;
+     asm_len = best_overlap;
+    
+   }
+
+
+
+  for (j = 0; j < asm_len; ++ j)
+    if (ai->data[j] == 'N' || ai->data[j] == 'n') ++(*uncalled);
+  *uncalled = (*uncalled) / asm_len;
+
+  *kassian_result = stat_test (p_value, exp_match, min_overlap, 0.25);
+
+
+  return (asm_len);
+}
+
 
 int
 assembly (struct reads_info * left, 
@@ -725,7 +1048,14 @@ main (int argc, char * argv[])
     #pragma omp for
     for (i = 0; i < cnt_reads_left; ++ i)
      {
-       asm_len = assembly (ri_left[i], ri_right[i], qs_lps, qs_rps, &ai[i], sw.score_method, &uncalled, sw.p_value, sw.min_overlap, &kassian_result, match_score, mismatch_score);
+       if (sw.emp_freqs == 0)
+        {
+          asm_len = assembly (ri_left[i], ri_right[i], qs_lps, qs_rps, &ai[i], sw.score_method, &uncalled, sw.p_value, sw.min_overlap, &kassian_result, match_score, mismatch_score);
+        }
+       else
+        {
+          asm_len = assembly_ef (ri_left[i], ri_right[i], qs_lps, qs_rps, &ai[i], sw.score_method, &uncalled, sw.p_value, sw.min_overlap, &kassian_result, match_score, mismatch_score, ef);
+        }
 //       geom_mean = 100000;
 
        if (asm_len < read_size)   /* runthrough case */
