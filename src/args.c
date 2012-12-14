@@ -17,6 +17,7 @@ static struct option long_options[] =
    { "quality-theshold",  required_argument, NULL, 'q' },
    { "right-fastq",       required_argument, NULL, 'r' },
    { "score-method",      required_argument, NULL, 's' },
+   { "min-trim-length",   required_argument, NULL, 't' },
    { "max-uncalled-base", required_argument, NULL, 'u' }, 
    { "min-overlap",       required_argument, NULL, 'v' },
    { NULL,                0,                 NULL, 0   }
@@ -48,8 +49,10 @@ void usage (void)
                    "                                        to 0. (default: 0)\n");
   fprintf (stdout, "  -n, --min-assembly-length   <int>     Minimum possible size of the assembled sequence.\n");
   fprintf (stdout, "                                        To disable it set to 0. (default: 0)\n");
-  fprintf (stdout, "  -q, --quality-threshold     <int>     Quality score threshold. Dont remember what that\n"
-                   "                                        really is. (default: 0)\n");
+  fprintf (stdout, "  -t, --min-trim-length       <int>     Minimum length of reads after trimming the low quality"
+                   "                                        part (default: 1)\n");
+  fprintf (stdout, "  -q, --quality-threshold     <int>     Quality score threshold used for trimming the low quality"
+                   "                                        part of the reads (default: 0)\n");
   fprintf (stdout, "  -u, --max-uncalled-base     <float>   Maximal proportion of uncalled bases. A number between 0 and 1.\n"
                    "                                        Set to 0 to discard all reads that contain uncalled bases, or\n"
                    "                                        1 to process all sequences independent on the number of uncalled\n"
@@ -79,9 +82,10 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
   sw->emp_freqs     = 0;    /* do not use empirical base frequencies as default */
   sw->p_value       = 0.01;
   sw->geom_mean     = 0;
+  sw->min_trim_len  = 1;
 
 
-  while ((opt = getopt_long(argc, argv, "b:ef:g:hm:n:o:p:q:r:s:u:v:", long_options, &oi)) != -1)
+  while ((opt = getopt_long(argc, argv, "b:ef:g:hm:n:o:p:q:r:s:t:u:v:", long_options, &oi)) != -1)
    {
      switch (opt)
       {
@@ -166,6 +170,15 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
           if (ep == optarg || *ep != '\0' )
            {
              printf ("Problem 3\n");
+             return (0);
+           }
+          break;
+
+        case 't':
+          sw->min_trim_len = (int) strtol (optarg, &ep, 10);
+          if (ep == optarg || *ep != '\0' )
+           {
+             printf ("Problem 10\n");
              return (0);
            }
           break;

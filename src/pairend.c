@@ -16,6 +16,11 @@
 
 extern long double * precomp;
 
+int stat_test (double, double, int, double);
+
+double
+assemble_overlap (struct reads_info * left, struct reads_info * right, int base_left, int base_right, int ol_size, struct asm_info * ai);
+
 struct dp_matrix
  {
    int          cnt_match;
@@ -28,6 +33,9 @@ double sc_neq[256][256];
 
 
 double qs_mul[256][256];
+
+int match_score    = 1;
+int mismatch_score = 1;
 
 /** @brief Trimming of forward part of unassembled sequence
   *
@@ -186,7 +194,10 @@ assembly (struct reads_info * left,
           int               * rps, 
           struct asm_info   * ai,
           int                 score_method,
-          double            * uncalled)
+          double            * uncalled,
+          double              p_value,
+          int                 min_overlap,
+          int               * kassian_result)
 {
   int                   i,j;
   int                   n;
@@ -195,6 +206,7 @@ assembly (struct reads_info * left,
   int                   best_overlap = 0;       /* overlap of the best alignment */
   int                   run_through = 0;
   int                   nMatch;
+  double exp_match;
   int asm_len = 0;
   *uncalled = 0;
   
@@ -285,7 +297,7 @@ assembly (struct reads_info * left,
      memcpy (ai->data,          left->data,          n - best_overlap);
      memcpy (ai->quality_score, left->quality_score, n - best_overlap);
 
-     assemble_overlap (left, right, n - best_overlap, 0, best_overlap, ai);
+     exp_match = assemble_overlap (left, right, n - best_overlap, 0, best_overlap, ai);
      
      /*
      for (i = 0; i < best_overlap; ++i)
@@ -321,7 +333,7 @@ assembly (struct reads_info * left,
    }
   else
    {
-     assemble_overlap (left, right, 0, n - best_overlap, best_overlap, ai);
+     exp_match = assemble_overlap (left, right, 0, n - best_overlap, best_overlap, ai);
      
      /*
      for (i = 0; i < best_overlap; ++ i)
@@ -352,19 +364,25 @@ assembly (struct reads_info * left,
     
    }
 
+
+
   for (j = 0; j < asm_len; ++ j)
     if (ai->data[j] == 'N' || ai->data[j] == 'n') ++(*uncalled);
   *uncalled = (*uncalled) / asm_len;
 
+  *kassian_result = stat_test (p_value, exp_match, min_overlap, 0.25);
+
+
   return (asm_len);
 }
 
-inline void
+double
 assemble_overlap (struct reads_info * left, struct reads_info * right, int base_left, int base_right, int ol_size, struct asm_info * ai)
 {
   int           i; 
   char          x, y;
   char          qx, qy;
+  double        exp_match  = 0;
 
   for (i = 0; i < ol_size; ++i)
    {
@@ -373,18 +391,21 @@ assemble_overlap (struct reads_info * left, struct reads_info * right, int base_
      //if (x == 0 || y == 0) printf ("ERROR!!!\n");
      qx = left->quality_score[base_left + i];
      qy = right->quality_score[base_right + i];
-     if (x == 'N' && y == 'N')
+     if ( (x == 'N' || x == 'n') && (y == 'N' || y == 'n'))
       {
+        exp_match += 0.25; // TODO: Change this to q
         ai->data[base_left + i]          = 'N';
         ai->quality_score[base_left + i] = ( qx < qy ) ? qx : qy;
       }
-     else if (x == 'N')
+     else if (x == 'N' || x == 'n')
       {
+        exp_match += 0.25; // TODO: Change this to q
         ai->data[base_left + i]          = y;
         ai->quality_score[base_left + i] = qy;
       }
-     else if (y == 'N')
+     else if (y == 'N' || y == 'n')
       {
+        exp_match += 0.25; // TODO: Change this to q
         ai->data[base_left + i]          = x;
         ai->quality_score[base_left + i] = qx;
       }
@@ -392,11 +413,14 @@ assemble_overlap (struct reads_info * left, struct reads_info * right, int base_
       {
         if (x == y)
          {
+           exp_match += sc_eq[(int)qx][(int)qy] / match_score;
+
            ai->data[base_left + i] = x;
            ai->quality_score[base_left + i] = (right->quality_score[base_right + i] - PHRED_INIT) + (left->quality_score[base_left + i] - PHRED_INIT) + PHRED_INIT; //qs_mul[qx][qy];
          }
         else
          {
+           exp_match += sc_neq[(int)qx][(int)qy] / mismatch_score;
            if (qx > qy)
             {
               ai->data[base_left + i]          =  x;
@@ -410,6 +434,8 @@ assemble_overlap (struct reads_info * left, struct reads_info * right, int base_
          }
       }
    }
+  if (ol_size == 0) return (0);
+  return (exp_match / ol_size);
 }
 
 char * 
@@ -569,9 +595,10 @@ main (int argc, char * argv[])
   FILE                * fd[4];
   int                   asm_len;
   int                 * flags;
-  double                p_value, geom_mean, uncalled, uncalled_forward, uncalled_reverse;
+  double                geom_mean, uncalled, uncalled_forward, uncalled_reverse;
   struct user_args      sw;
   struct emp_freq * ef;
+  int kassian_result;
 
   if (!decode_switches (argc, argv, &sw))
    {
@@ -619,12 +646,12 @@ main (int argc, char * argv[])
      ai[i].quality_score = (char *) malloc ((2 * read_size + 1) * sizeof(char));
    }
 
-  init_scores(1, 1);
+  init_scores(match_score, mismatch_score);
 
   flags = (int *) calloc (cnt_reads_left, sizeof (int));
 
   //#pragma omp parallel shared(ri_left,ri_right,ai) private(qs_lps, qs_rps, i) 
-  #pragma omp parallel shared(ri_left,ri_right,ai) private(qs_lps, qs_rps, i, asm_len, uncalled) 
+  #pragma omp parallel shared(ri_left,ri_right,ai) private(qs_lps, qs_rps, i, asm_len, uncalled, kassian_result) 
   {
     /* allocate two auxiliary arrays for storing the prefix sum of quality
        scores of the two reads */
@@ -635,11 +662,12 @@ main (int argc, char * argv[])
     #pragma omp for
     for (i = 0; i < cnt_reads_left; ++ i)
      {
-       asm_len = assembly (ri_left[i], ri_right[i], qs_lps, qs_rps, &ai[i], sw.score_method, &uncalled);
-       geom_mean = p_value = 100000;
+       asm_len = assembly (ri_left[i], ri_right[i], qs_lps, qs_rps, &ai[i], sw.score_method, &uncalled, sw.p_value, sw.min_overlap, &kassian_result);
+       geom_mean = 100000;
    //    asm_len = strlen (ai[i].data);
        //if ((asm_len >= sw.min_asm_len) && (asm_len <= sw.max_asm_len) && (2 * read_size - asm_len >= sw.min_overlap))
-       if (2 * read_size - asm_len >= sw.min_overlap && p_value >= sw.p_value)
+       /* TODO: BUG BUG BUG -> FIX THE FOLLOWING LINE for runthrought case */
+       if (2 * read_size - asm_len >= sw.min_overlap && kassian_result)
         {
           if ( (asm_len >= sw.min_asm_len) && (asm_len <= sw.max_asm_len) && (uncalled <= sw.max_uncalled)) //&& (geom_mean >= sw.geom_mean) )
            {
