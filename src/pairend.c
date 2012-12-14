@@ -28,9 +28,30 @@ struct dp_matrix
    double       score;
  };
 
+/* TODO: Dynamically allocate them */
 double sc_eq[256][256];
 double sc_neq[256][256];
 
+double sc_eqA[256][256];
+double sc_eqC[256][256];
+double sc_eqG[256][256];
+double sc_eqT[256][256];
+
+double sc_neqAC[256][256];
+double sc_neqAG[256][256];
+double sc_neqAT[256][256];
+
+double sc_neqCA[256][256];
+double sc_neqCG[256][256];
+double sc_neqCT[256][256];
+
+double sc_neqGA[256][256];
+double sc_neqGC[256][256];
+double sc_neqGT[256][256];
+
+double sc_neqTA[256][256];
+double sc_neqTC[256][256];
+double sc_neqTG[256][256];
 
 double qs_mul[256][256];
 
@@ -106,10 +127,31 @@ trim_cpl (struct reads_info * read, int min_quality, int len, double * uncalled)
   return (len);
 }
 
-void init_scores (int match, int mismatch)
+void init_scores (int match, int mismatch, struct emp_freq * ef)
 {
   int           i, j;
   double        ex, ey;
+  double        pa2, pc2, pg2, pt2, pagt2, pcgt2, pact2, pacg2, pacg, pact, pagt, pcgt;
+  double        pac2, pag2, pat2, pcg2, pct2, pgt2;
+  double        p2acg, p2act, p2agt, p2cgt;
+
+  pa2 = ef->pa * ef->pa;
+  pc2 = ef->pc * ef->pc;
+  pg2 = ef->pg * ef->pg;
+  pt2 = ef->pt * ef->pt;
+
+  pacg2 = pa2 + pc2 + pg2;  pacg = ef->pa + ef->pc + ef->pg; p2acg = pacg * pacg;
+  pact2 = pa2 + pc2 + pt2;  pact = ef->pa + ef->pc + ef->pt; p2act = pact * pact;
+  pagt2 = pa2 + pg2 + pt2;  pagt = ef->pa + ef->pg + ef->pt; p2agt = pagt * pagt;
+  pcgt2 = pc2 + pg2 + pt2;  pcgt = ef->pc + ef->pg + ef->pt; p2cgt = pcgt * pcgt;
+
+  pac2 = (ef->pa + ef->pc) * (ef->pa + ef->pc);
+  pag2 = (ef->pa + ef->pg) * (ef->pa + ef->pg);
+  pat2 = (ef->pa + ef->pt) * (ef->pa + ef->pt);
+  pcg2 = (ef->pc + ef->pg) * (ef->pc + ef->pg);
+  pct2 = (ef->pc + ef->pt) * (ef->pc + ef->pt);
+  pgt2 = (ef->pg + ef->pt) * (ef->pg + ef->pt);
+
 
   for (i = 0; i < 256; ++ i)
    {
@@ -122,9 +164,32 @@ void init_scores (int match, int mismatch)
         sc_neq[i][j] = mismatch * (1 - (1.0 / 3.0) * (1 - ex) * ey - (1.0 / 3.0) * (1 - ey) * ex - (2.0 / 9.0) * ex * ey);
         qs_mul[i][j] = ex * ey;
 
+        sc_eqA[i][j] = (1 - ex) * (1 - ey) + (ex * ey) * pcgt2 / p2cgt;
+        sc_eqC[i][j] = (1 - ex) * (1 - ey) + (ex * ey) * pagt2 / p2agt;
+        sc_eqG[i][j] = (1 - ex) * (1 - ey) + (ex * ey) * pact2 / p2act;
+        sc_eqT[i][j] = (1 - ex) * (1 - ey) + (ex * ey) * pacg2 / p2acg;
+
+        sc_neqAC[i][j] = (1 - ey) * ex * (ef->pc / pcgt) + (1 - ex) * ey * (ef->pa / pagt) + ex * ey * (pg2 + pt2) / pgt2;
+        sc_neqCA[i][j] = (1 - ey) * ex * (ef->pa / pagt) + (1 - ex) * ey * (ef->pc / pcgt) + ex * ey * (pg2 + pt2) / pgt2;
+
+        sc_neqAG[i][j] = (1 - ey) * ex * (ef->pg / pcgt) + (1 - ex) * ey * (ef->pa / pact) + ex * ey * (pc2 + pt2) / pct2;
+        sc_neqGA[i][j] = (1 - ey) * ex * (ef->pa / pact) + (1 - ex) * ey * (ef->pg / pcgt) + ex * ey * (pc2 + pt2) / pct2;
+
+        sc_neqAT[i][j] = (1 - ey) * ex * (ef->pt / pcgt) + (1 - ex) * ey * (ef->pa / pacg) + ex * ey * (pc2 + pg2) / pcg2;
+        sc_neqTA[i][j] = (1 - ey) * ex * (ef->pa / pacg) + (1 - ex) * ey * (ef->pt / pcgt) + ex * ey * (pc2 + pg2) / pcg2;
+
+        sc_neqCG[i][j] = (1 - ey) * ex * (ef->pg / pagt) + (1 - ex) * ey * (ef->pc / pact) + ex * ey * (pa2 + pt2) / pat2;
+        sc_neqGC[i][j] = (1 - ey) * ex * (ef->pc / pact) + (1 - ex) * ey * (ef->pg / pagt) + ex * ey * (pa2 + pt2) / pat2;
+
+        sc_neqCT[i][j] = (1 - ey) * ex * (ef->pt / pagt) + (1 - ex) * ey * (ef->pc / pacg) + ex * ey * (pa2 + pg2) / pag2;
+        sc_neqTC[i][j] = (1 - ey) * ex * (ef->pc / pacg) + (1 - ex) * ey * (ef->pt / pagt) + ex * ey * (pa2 + pg2) / pag2;
+
+        sc_neqGT[i][j] = (1 - ey) * ex * (ef->pt / pact) + (1 - ex) * ey * (ef->pg / pacg) + ex * ey * (pa2 + pc2) / pac2;
+        sc_neqTG[i][j] = (1 - ey) * ex * (ef->pg / pacg) + (1 - ex) * ey * (ef->pt / pact) + ex * ey * (pa2 + pc2) / pac2;
      }
    }
 }
+
 
 
 /* TODO: Remember to speed up this function by doing something with the multiplication and division of match/mismatch */
@@ -644,7 +709,7 @@ main (int argc, char * argv[])
      ai[i].quality_score = (char *) malloc ((2 * read_size + 1) * sizeof(char));
    }
 
-  init_scores(match_score, mismatch_score);
+  init_scores(match_score, mismatch_score, ef);
 
   flags = (int *) calloc (cnt_reads_left, sizeof (int));
 
