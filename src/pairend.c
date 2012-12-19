@@ -169,23 +169,23 @@ void init_scores (int match, int mismatch, struct emp_freq * ef)
         sc_eqG[i][j] = match * (1 - ex) * (1 - ey) + (ex * ey) * pact2 / p2act;
         sc_eqT[i][j] = match * (1 - ex) * (1 - ey) + (ex * ey) * pacg2 / p2acg;
 
-        sc_neqAC[i][j] = mismatch * ((1 - ey) * ex * (ef->pc / pcgt) + (1 - ex) * ey * (ef->pa / pagt) + ex * ey * (pg2 + pt2) / pgt2);
-        sc_neqCA[i][j] = mismatch * ((1 - ey) * ex * (ef->pa / pagt) + (1 - ex) * ey * (ef->pc / pcgt) + ex * ey * (pg2 + pt2) / pgt2);
+        sc_neqAC[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pc / pcgt) - (1 - ex) * ey * (ef->pa / pagt) - ex * ey * (pg2 + pt2) / pgt2);
+        sc_neqCA[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pa / pagt) - (1 - ex) * ey * (ef->pc / pcgt) - ex * ey * (pg2 + pt2) / pgt2);
 
-        sc_neqAG[i][j] = mismatch * ((1 - ey) * ex * (ef->pg / pcgt) + (1 - ex) * ey * (ef->pa / pact) + ex * ey * (pc2 + pt2) / pct2);
-        sc_neqGA[i][j] = mismatch * ((1 - ey) * ex * (ef->pa / pact) + (1 - ex) * ey * (ef->pg / pcgt) + ex * ey * (pc2 + pt2) / pct2);
+        sc_neqAG[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pg / pcgt) - (1 - ex) * ey * (ef->pa / pact) - ex * ey * (pc2 + pt2) / pct2);
+        sc_neqGA[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pa / pact) - (1 - ex) * ey * (ef->pg / pcgt) - ex * ey * (pc2 + pt2) / pct2);
 
-        sc_neqAT[i][j] = mismatch * ((1 - ey) * ex * (ef->pt / pcgt) + (1 - ex) * ey * (ef->pa / pacg) + ex * ey * (pc2 + pg2) / pcg2);
-        sc_neqTA[i][j] = mismatch * ((1 - ey) * ex * (ef->pa / pacg) + (1 - ex) * ey * (ef->pt / pcgt) + ex * ey * (pc2 + pg2) / pcg2);
+        sc_neqAT[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pt / pcgt) - (1 - ex) * ey * (ef->pa / pacg) - ex * ey * (pc2 + pg2) / pcg2);
+        sc_neqTA[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pa / pacg) - (1 - ex) * ey * (ef->pt / pcgt) - ex * ey * (pc2 + pg2) / pcg2);
 
-        sc_neqCG[i][j] = mismatch * ((1 - ey) * ex * (ef->pg / pagt) + (1 - ex) * ey * (ef->pc / pact) + ex * ey * (pa2 + pt2) / pat2);
-        sc_neqGC[i][j] = mismatch * ((1 - ey) * ex * (ef->pc / pact) + (1 - ex) * ey * (ef->pg / pagt) + ex * ey * (pa2 + pt2) / pat2);
+        sc_neqCG[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pg / pagt) - (1 - ex) * ey * (ef->pc / pact) - ex * ey * (pa2 + pt2) / pat2);
+        sc_neqGC[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pc / pact) - (1 - ex) * ey * (ef->pg / pagt) - ex * ey * (pa2 + pt2) / pat2);
 
-        sc_neqCT[i][j] = mismatch * ((1 - ey) * ex * (ef->pt / pagt) + (1 - ex) * ey * (ef->pc / pacg) + ex * ey * (pa2 + pg2) / pag2);
-        sc_neqTC[i][j] = mismatch * ((1 - ey) * ex * (ef->pc / pacg) + (1 - ex) * ey * (ef->pt / pagt) + ex * ey * (pa2 + pg2) / pag2);
+        sc_neqCT[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pt / pagt) - (1 - ex) * ey * (ef->pc / pacg) - ex * ey * (pa2 + pg2) / pag2);
+        sc_neqTC[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pc / pacg) - (1 - ex) * ey * (ef->pt / pagt) - ex * ey * (pa2 + pg2) / pag2);
 
-        sc_neqGT[i][j] = mismatch * ((1 - ey) * ex * (ef->pt / pact) + (1 - ex) * ey * (ef->pg / pacg) + ex * ey * (pa2 + pc2) / pac2);
-        sc_neqTG[i][j] = mismatch * ((1 - ey) * ex * (ef->pg / pacg) + (1 - ex) * ey * (ef->pt / pact) + ex * ey * (pa2 + pc2) / pac2);
+        sc_neqGT[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pt / pact) - (1 - ex) * ey * (ef->pg / pacg) - ex * ey * (pa2 + pc2) / pac2);
+        sc_neqTG[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pg / pacg) - (1 - ex) * ey * (ef->pt / pact) - ex * ey * (pa2 + pc2) / pac2);
      }
    }
 }
@@ -563,7 +563,7 @@ assembly_ef (struct reads_info * left,
     if (ai->data[j] == 'N' || ai->data[j] == 'n') ++(*uncalled);
   *uncalled = (*uncalled) / asm_len;
 
-  *kassian_result = stat_test (p_value, exp_match, min_overlap, 0.25);
+  *kassian_result = stat_test (p_value, exp_match, min_overlap, ef->q);
 
 
   return (asm_len);
