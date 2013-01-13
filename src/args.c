@@ -32,7 +32,9 @@ void usage (void)
   fprintf (stdout, "|  __/| |___ / ___ \\|  _ <\n");
   fprintf (stdout, "|_|   |_____/_/   \\_\\_| \\_\\\n");
   fprintf (stdout, "\n.oOo. Pair-End AssembleR .oOo.\n");
-  fprintf (stdout, "PEAR v0.1 by Tomas Flouri and Jiajie Zhang\n");
+  fprintf (stdout, "PEAR v0.8 by Tomas Flouri and Jiajie Zhang\n");
+  fprintf (stdout, "Free for academic use, for commercial use or bug report, please contact:\n");
+  fprintf (stdout, "flouris@gmail.com and bestzhangjiajie@gmail.com\n");
   fprintf (stdout, "\n\n"); 
   
   fprintf (stdout, "Usage: pear <options>\n");
@@ -41,26 +43,43 @@ void usage (void)
   fprintf (stdout, "  -r, --reverse-fastq         <str>     Reverse pairend FASTQ file.\n");
   fprintf (stdout, "  -o, --output                <str>     Output filename.\n");
   fprintf (stdout, "Optional:\n");
-  fprintf (stdout, "  -p, --p-value               <float>   Use a p-value from the set { 0.05, 0.01, 0.001, 0.0001 }. If\n"
+  fprintf (stdout, "  -p, --p-value               <float>   Use a p-value from the set { 1.0, 0.05, 0.01, 0.001, 0.0001 }. If\n"
                    "                                        the p-value of the assembled reads exceeds the specified p-value, the\n"
-                   "                                        reads will be output unassembled. (default: 0.01)\n");
-  fprintf (stdout, "  -v, --min-overlap           <int>     Minimum overlap (default: 10)\n");
+                   "                                        reads will be output unassembled.\n"
+                   "                                        Set 1.0 to disable the test.(default: 0.01)\n");
+  fprintf (stdout, "  -v, --min-overlap           <int>     Minimum overlap (default: 10)\n"
+				   "                                        If the statistical test is used, the min-overlap can in principal be set to 1,\n"
+				   "                                        but in practice setting min-overlap to a proper value will further reduce\n"
+				   "                                        false-positive assemlies, since the data will not be perfect.\n"); 	
   fprintf (stdout, "  -m, --max-assembly-length   <int>     Maximum possible size of the assembled sequence.\n");
   fprintf (stdout, "                                        The assembled sequence can be arbitrary long if set\n"
                    "                                        to 0. (default: 0)\n");
   fprintf (stdout, "  -n, --min-assembly-length   <int>     Minimum possible size of the assembled sequence.\n");
-  fprintf (stdout, "                                        To disable it set to 0. (default: 0)\n");
-  fprintf (stdout, "  -t, --min-trim-length       <int>     Minimum length of reads after trimming the low quality\n"
-                   "                                        part (default: 1)\n");
+  fprintf (stdout, "                                        To disable it set to 0. (default: 50)\n");
+  fprintf (stdout, "  -t, --min-trim-length       <int>     Minimum length of reads after trimming the low quality part. If two consecutive\n"
+                   "                                        bases quality scores < q, the rest of the reads will be trimed (default: 1)\n");
   fprintf (stdout, "  -q, --quality-threshold     <int>     Quality score threshold used for trimming the low quality\n"
                    "                                        part of the reads (default: 0)\n");
   fprintf (stdout, "  -u, --max-uncalled-base     <float>   Maximal proportion of uncalled bases. A number between 0 and 1.\n"
                    "                                        Set to 0 to discard all reads that contain uncalled bases, or\n"
                    "                                        1 to process all sequences independent on the number of uncalled\n"
                    "                                        bases. (default: 1)\n");
-  fprintf (stdout, "  -g, --geometric-mean        <float>   Minimum value of geometric mean of the quality score. (default: 0)\n");
-  fprintf (stdout, "  -e, --empirical-freqs                 Use empirical base frequencies.\n");
-  fprintf (stdout, "  -s, --score-method          <int>     Scoring method\n");
+  fprintf (stdout, "  -g, --test-method           <int>     Statistical test method: (default: 1)\n"
+				   "                                        1: Test using the fraction of base matches\n"
+				   "                                        2: Test using the OES\n"
+				   "                                        The two tests are very similar, the second test is conceptually more advanced.\n"
+				   "                                        However, due to the discret nature of the second test, it usually gives a lower\n"
+				   "                                        p-value for assembled reads than the specified one.\n"
+				   "                                        For example, set p-value = 0.05, using the second test, the assembled reads \n"
+				   "                                        might have a p-value of 0.02. This means, using the same p-value, the second \n"
+				   "                                        test is more strict (accurate) than the first one, and assembles less reads.\n");
+  fprintf (stdout, "  -e, --empirical-freqs                 Use empirical base frequencies. (default: not)\n");
+  fprintf (stdout, "  -s, --score-method          <int>     Scoring method\n"
+				   "                                        1: OES with +1 for match and -1 for mismatch.\n"
+				   "                                        2: Scaled score, use the probobality of bases been correct or wrong to scale \n"
+				   "                                           the score in method 3.\n"
+				   "                                        3: +1 for a match, -1 for a mismatch, ignoring the quality scores.\n"
+				   "                                        (default: 1)\n");				   		
   fprintf (stdout, "  -b, --phred-base            <int>     Base Phred quality score (default: 33)\n");
   fprintf (stdout, "  -h, --help                            This help screen.\n\n");
 }
@@ -74,7 +93,7 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
   /* initialization */
   sw->fastq_left    = NULL;
   sw->fastq_right   = NULL;
-  sw->min_asm_len   = 0;
+  sw->min_asm_len   = 50;
   sw->max_asm_len   = 999999;
   sw->qual_thres    = 0;
   sw->phred_base    = 33;
@@ -84,6 +103,8 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
   sw->p_value       = 0.01;
   sw->geom_mean     = 0;
   sw->min_trim_len  = 1;
+  sw->score_method  = 1;
+  sw->test  = 1;
 
 
   while ((opt = getopt_long(argc, argv, "b:ef:g:hm:n:o:p:q:r:s:t:u:v:", long_options, &oi)) != -1)
@@ -94,7 +115,7 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
           sw->phred_base  = (int) strtol (optarg, &ep, 10);
           if (ep == optarg || *ep != '\0')
            {
-             printf ("Problem 6\n");
+             printf ("Please input a correct base Phred quality score.\n");
              return (0);
            }
           break;
@@ -108,12 +129,12 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
           break;
 
         case 'g':
-          sw->geom_mean = strtod (optarg, &ep);     /* TODO: check this line */
-          if (ep == optarg || *ep != '\0' || sw->geom_mean < 0 || sw->geom_mean > 1)
-           {
-             printf ("Problem 7\n");
+          if (!strcmp (optarg, "1") || !strcmp (optarg, "2")){
+			sw->test = (int) strtol (optarg, &ep, 10);
+		  }else{
+			 printf ("Invalid testing method.\n");
              return (0);
-           }
+		  }
           break;
 
         case 'h':
@@ -123,7 +144,7 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
           sw->max_asm_len = (int)strtol (optarg, &ep, 10);
           if (ep == optarg || *ep != '\0' )
            {
-             printf ("Problem 1\n");
+             printf ("Invalid max-assembly-length.\n");
              return (0);
            }
           break;
@@ -132,7 +153,7 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
           sw->min_asm_len = (int) strtol (optarg, &ep, 10);
           if (ep == optarg || *ep != '\0' )
            {
-             printf ("Problem 2\n");
+             printf ("Invalid min-assembly-length.\n");
              return (0);
            }
           break;
@@ -141,23 +162,24 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
           sw->outfile = optarg;
           break;
 
-        case 'p':
-          if (!strcmp (optarg, "0.05") || !strcmp (optarg, "0.01") || !strcmp (optarg, "0.001") || !strcmp (optarg, "0.0001"))
+        case 'p':		
+          if (!strcmp (optarg, "1.0") || !strcmp (optarg, "0.05") || !strcmp (optarg, "0.01") || !strcmp (optarg, "0.001") || !strcmp (optarg, "0.0001") )
            {
              sw->p_value = strtod (optarg, &ep);
            }
           else
            {
-             printf ("Problem 8\n");
+             printf ("Invalid p-value or minimal OES.\n");
              return (0);
            }
+          
           break;
 
         case 'q':
           sw->qual_thres = (int) strtol (optarg, &ep, 10);
           if (ep == optarg || *ep != '\0' )
            {
-             printf ("Problem 5\n");
+             printf ("Invalid quality-threshold.\n");
              return (0);
            }
           break;
@@ -167,10 +189,15 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
           break;
 
         case 's':
-          sw->score_method = (int) strtol (optarg, &ep, 10);
+          if (!strcmp (optarg, "1") || !strcmp (optarg, "2") || !strcmp (optarg, "3") ){
+			sw->score_method = (int) strtol (optarg, &ep, 10);
+		  }else{
+			 printf ("Invalid score-method.\n");
+             return (0);
+		  }
           if (ep == optarg || *ep != '\0' )
            {
-             printf ("Problem 3\n");
+             printf ("Invalid score-method.\n");
              return (0);
            }
           break;
@@ -179,7 +206,7 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
           sw->min_trim_len = (int) strtol (optarg, &ep, 10);
           if (ep == optarg || *ep != '\0' )
            {
-             printf ("Problem 10\n");
+             printf ("Invalid min-trim-length.\n");
              return (0);
            }
           break;
@@ -189,7 +216,7 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
           
           if (ep == optarg || *ep != '\0' || sw->max_uncalled < 0 || sw->max_uncalled > 1)
            {
-             printf ("Problem 9\n");
+             printf ("Invalid max-uncalled-base value, must be between 0 and 1.\n");
              return (0);
            }
           break;
@@ -198,7 +225,7 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
           sw->min_overlap = (int) strtol (optarg, &ep, 10);
           if (ep == optarg || *ep != '\0' )
            {
-             printf ("Problem 4\n");
+             printf ("Invalid min-overlap length.\n");
              return (0);
            }
           break;

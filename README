@@ -5,3 +5,27 @@
 |_|   |_____/_/   \_\_| \_\
  
 ....Pair-End AssembleR....
+
+Introduction:
+
+How to complie:
+
+Run self-tests:
+1. Make sure you have python 2.4 or above installed
+1. Go to the "test" folder
+2. type ./test.py
+This will run pear on serveral simulated data sets and various options 
+to check if the newly complied program works properly.  
+
+How to use:
+
+
+Important:
+1. We recommend to enable the empirical base frequencies, this will give 
+better results.
+2. The program does not check the paired-end reads names, the users 
+should make sure the reads in both files are in the same flowcell 
+position if they are in the same line.
+
+How to cite:
+

@@ -6,8 +6,6 @@
 extern int match_score;
 extern int mismatch_score;
 
-
-
 /** @brief  test
   *
   *  Statistical test
@@ -29,12 +27,15 @@ stat_test (double pval, double f, int min_overlap, double q)
 {
   double * table_ptr;
   double cutoff;
-
-
-  if (pval == 0.01)
+  if (min_overlap > 99){min_overlap = 99;}	
+	
+  if (pval == 1.0)
+   {
+	   return (1);
+   }   
+  else if (pval == 0.01)
    {
      table_ptr = precomp_01[min_overlap];
-     //cutoff = precomp_01[min_overlap - 1][(int)(q * 100 - 1)];
    }
   else if (pval == 0.05)
    {
@@ -51,9 +52,42 @@ stat_test (double pval, double f, int min_overlap, double q)
 
   cutoff = table_ptr[(int)(q * 100)];
 
-//  printf ("%f %f %d\n", cutoff, f, min_overlap );
-
   if (f >= cutoff) return (1);
+
+  return (0);
+}
+
+int stat_test2 (double pval, double oes, int min_overlap, double q)
+{
+  double * table_ptr;
+  double cutoff;
+  if (min_overlap > 99){min_overlap = 99;}
+  if (q > 0.49){q = 0.49;}		
+	
+  if (pval == 1.0)
+   {
+	   return (1);
+   }   
+  else if (pval == 0.01)
+   {
+     table_ptr = precomp2_01[min_overlap];
+   }
+  else if (pval == 0.05)
+   {
+     table_ptr = precomp2_05[min_overlap];
+   }
+  else if (pval == 0.001)
+   {
+     table_ptr = precomp2_001[min_overlap];
+   }
+  else
+   {
+     table_ptr = precomp2_0001[min_overlap];
+   }
+
+  cutoff = table_ptr[(int)(q * 100)];
+
+  if (oes > cutoff) return (1);
 
   return (0);
 }

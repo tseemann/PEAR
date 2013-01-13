@@ -1,9 +1,9 @@
-package = pairend
+package = pear
 version = 0.0.1
 tarname = $(package)
 distdir = $(tarname)-$(version)
 
-all clean install pairend:
+all clean install pear:
 	$(MAKE) -C src $@
 
 dist: $(distdir).tar.gz
@@ -18,7 +18,7 @@ $(distdir):
 	cp Makefile $(distdir)
 	cp README $(distdir)
 	cp src/Makefile $(distdir)/src
-	cp src/pairend.c $(distdir)/src
+	cp src/pear.c $(distdir)/src
 	cp src/fastq.c $(distdir)/src
 	cp src/fastq.h $(distdir)/src
 

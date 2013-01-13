@@ -46,7 +46,7 @@ get_emp_freq (int nReads, int Len, struct reads_info ** ri_left, struct reads_in
          }
       }
    }
-  printf ("A: %d C: %d G: %d T: %d\n", ef->freqa, ef->freqc, ef->freqg, ef->freqt );
+  //printf ("A: %d C: %d G: %d T: %d\n", ef->freqa, ef->freqc, ef->freqg, ef->freqt );
   
   ef->total = ef->freqa + ef->freqc + ef->freqg + ef->freqt;
   ef->pa = ef->freqa / (double)ef->total;
@@ -56,13 +56,13 @@ get_emp_freq (int nReads, int Len, struct reads_info ** ri_left, struct reads_in
   
   ef->q = ef->pa * ef->pa + ef->pc * ef->pc + ef->pg * ef->pg + ef->pt * ef->pt;
 
-  printf ("Total: %f\n", ef->total);
-  printf ("pa: %f\n", ef->pa);
-  printf ("pc: %f\n", ef->pc);
-  printf ("pg: %f\n", ef->pg);
-  printf ("pt: %f\n", ef->pt);
+  //printf ("Total: %f\n", ef->total);
+  //printf ("pa: %f\n", ef->pa);
+  //printf ("pc: %f\n", ef->pc);
+  //printf ("pg: %f\n", ef->pg);
+  //printf ("pt: %f\n", ef->pt);
 
-  printf ("q: %f\n", ef->q);
+  //printf ("q: %f\n", ef->q);
 
   return ef;
 

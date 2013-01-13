@@ -1,15 +1,12 @@
-all: pairend
+all: pear
 
-pairend: pairend.o fastq.o bintest.o args.o emp.c statistics.o
+pear: pear.o fastq.o args.o emp.c statistics.o
 	gcc -Wall -fopenmp -fomit-frame-pointer -O2 $+ -lm -o $@
 
-pairend.o: pairend.c
+pear.o: pear.c
 	gcc -c -Wall -fopenmp -fomit-frame-pointer -O2 $+ -lm -o $@
 
 fastq.o: fastq.c
-	gcc -c -Wall -fopenmp -fomit-frame-pointer -lm -O2 $+ -o $@
-
-bintest.o: bintest.c
 	gcc -c -Wall -fopenmp -fomit-frame-pointer -lm -O2 $+ -o $@
 
 args.o: args.c
@@ -22,6 +19,6 @@ statistics.o: statistics.c
 	gcc -c -Wall -fopenmp -fomit-frame-pointer -lm -O2 $+ -o $@
 
 clean:
-	-rm pairend pairend.o fastq.o args.o bintest.o statistics.o
+	-rm pear pear.o fastq.o args.o bintest.o statistics.o
 
 .PHONY: all clean

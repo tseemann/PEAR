@@ -23,6 +23,7 @@ struct user_args
    int          emp_freqs;    /**< @brief Flag whether to compute/use empirical base frequencies */
    double       p_value;      /**< @brief P-value to use */
    double       geom_mean;    /**< @brief Geometric mean */
+   int          test;         /**< @brief Test method */
    char       * outfile;      /**< @brief Output filename to use */
    int          min_trim_len;  /**< @brief Minimum trim length */
  };
