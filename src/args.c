@@ -77,7 +77,7 @@ void usage (void)
 				   "                                           in practice, when the actual overlap sizes are small, test 2 can produce more correctly \n"
 				   "                                           assembled sequences with only slightly higher false-positive rates.\n");
 				
-  fprintf (stdout, "  -e, --empirical-freqs                 Use empirical base frequencies. (default: not)\n");
+  fprintf (stdout, "  -e, --empirical-freqs                 Disable empirical base frequencies. (default: use empirical base frequencies)\n");
   fprintf (stdout, "  -s, --score-method          <int>     Scoring method\n"
 				   "                                        1: OES with +1 for match and -1 for mismatch.\n"
 				   "                                        2: Scaled score, use the probobality of bases been correct or wrong to scale \n"
@@ -103,7 +103,7 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
   sw->phred_base    = 33;
   sw->max_uncalled  = 1.0;
   sw->min_overlap   = 10;
-  sw->emp_freqs     = 0;    /* do not use empirical base frequencies as default */
+  sw->emp_freqs     = 1;    /* use empirical base frequencies as default */
   sw->p_value       = 0.01;
   sw->geom_mean     = 0;
   sw->min_trim_len  = 1;
@@ -125,7 +125,7 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
           break;
 
         case 'e':
-          sw->emp_freqs = 1;
+          sw->emp_freqs = 0;
           break;
 
         case 'f':

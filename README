@@ -31,11 +31,9 @@ to check if the newly complied program works properly.
 
 How to use:
 PEAR can robustly assemble most of the data sets with default parameters, 
-but we recommand to enable the empirical base frequencies, this usually 
-gives better results.
-A typical command to run PEAR would be:
+a typical command to run PEAR would be:
 
-./pear -f forward_read.fastq -r reverse_read.fastq -o outputfile -e
+./pear -f forward_read.fastq -r reverse_read.fastq -o outputfile
 
 For further options, please type: ./pear -h  
 
