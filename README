@@ -4,28 +4,46 @@
 |  __/| |___ / ___ \|  _ < 
 |_|   |_____/_/   \_\_| \_\
  
-....Pair-End AssembleR....
+....Paired-End AssembleR....
 
 Introduction:
+PEAR assembles the illumina paired-end reads if the DNA frament sizes 
+are smaller than twice of the read length. PEAR can assemble 95% of the 
+mean overlaps 35bp reads with a false-positive rate of 0.004. PEAR also 
+works with the multiplexed data set where the true underlying DNA frament 
+sizes varies. PEAR has an exremly low false-positive rate of 0.0003 on 
+data set where there are no overlaps between the two reads.
+
+PEAR is free for academic use, for commercial use or bug report, 
+please contact: flouris@gmail.com and bestzhangjiajie@gmail.com
+     
 
 How to complie:
+1. Go to the src folder
+2. type: make
 
 Run self-tests:
 1. Make sure you have python 2.4 or above installed
 1. Go to the "test" folder
-2. type ./test.py
+2. type: ./test.py
 This will run pear on serveral simulated data sets and various options 
 to check if the newly complied program works properly.  
 
 How to use:
+PEAR can robustly assemble most of the data sets with default parameters, 
+but we recommand to enable the empirical base frequencies, this usually 
+gives better results.
+A typical command to run PEAR would be:
 
+./pear -f forward_read.fastq -r reverse_read.fastq -o outputfile -e
+
+For further options, please type: ./pear -h  
 
 Important:
-1. We recommend to enable the empirical base frequencies, this will give 
-better results.
-2. The program does not check the paired-end reads names, the users 
+1. The program does not check the paired-end reads names, the users 
 should make sure the reads in both files are in the same flowcell 
 position if they are in the same line.
 
 How to cite:
+
 

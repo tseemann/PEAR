@@ -31,7 +31,7 @@ void usage (void)
   fprintf (stdout, "| |_) |  _|   / _ \\ | |_) |\n");
   fprintf (stdout, "|  __/| |___ / ___ \\|  _ <\n");
   fprintf (stdout, "|_|   |_____/_/   \\_\\_| \\_\\\n");
-  fprintf (stdout, "\n.oOo. Pair-End AssembleR .oOo.\n");
+  fprintf (stdout, "\n.oOo. Paired-End AssembleR .oOo.\n");
   fprintf (stdout, "PEAR v0.8 by Tomas Flouri and Jiajie Zhang\n");
   fprintf (stdout, "Free for academic use, for commercial use or bug report, please contact:\n");
   fprintf (stdout, "flouris@gmail.com and bestzhangjiajie@gmail.com\n");
@@ -39,8 +39,8 @@ void usage (void)
   
   fprintf (stdout, "Usage: pear <options>\n");
   fprintf (stdout, "Standard (mandatory):\n");
-  fprintf (stdout, "  -f, --forward-fastq         <str>     Forward pairend FASTQ file.\n");
-  fprintf (stdout, "  -r, --reverse-fastq         <str>     Reverse pairend FASTQ file.\n");
+  fprintf (stdout, "  -f, --forward-fastq         <str>     Forward paired-end FASTQ file.\n");
+  fprintf (stdout, "  -r, --reverse-fastq         <str>     Reverse paired-end FASTQ file.\n");
   fprintf (stdout, "  -o, --output                <str>     Output filename.\n");
   fprintf (stdout, "Optional:\n");
   fprintf (stdout, "  -p, --p-value               <float>   Use a p-value from the set { 1.0, 0.05, 0.01, 0.001, 0.0001 }. If\n"
