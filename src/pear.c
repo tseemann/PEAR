@@ -15,14 +15,16 @@
 
 extern long double * precomp;
 
-int stat_test (double, double, int, double);
+//int stat_test (double, double, int, double);
 int stat_test2 (double, double, int, double);
 
 double
 assemble_overlap (struct reads_info * left, struct reads_info * right, int base_left, int base_right, int ol_size, struct asm_info * ai);
 
+/*
 double
 assemble_overlap_ef (struct reads_info * left, struct reads_info * right, int base_left, int base_right, int ol_size, struct asm_info * ai, struct emp_freq  * ef);
+*/
 
 struct dp_matrix
  {
@@ -461,7 +463,7 @@ assembly_ef (struct reads_info * left,
   int                   best_overlap = 0;       /* overlap of the best alignment */
   int                   run_through = 0;
   int                   nMatch;
-  double exp_match;
+  //double                exp_match; // This is not used any more
   int asm_len = 0;
   *uncalled = 0;
   
@@ -510,7 +512,7 @@ assembly_ef (struct reads_info * left,
      memcpy (ai->data,          left->data,          n - best_overlap);
      memcpy (ai->quality_score, left->quality_score, n - best_overlap);
 
-     exp_match = assemble_overlap_ef (left, right, n - best_overlap, 0, best_overlap, ai, ef);
+     assemble_overlap(left, right, n - best_overlap, 0, best_overlap, ai);
           
      memcpy (ai->data          + n, right->data          + best_overlap,  n - best_overlap);
      memcpy (ai->quality_score + n, right->quality_score + best_overlap,  n - best_overlap);
@@ -521,7 +523,7 @@ assembly_ef (struct reads_info * left,
    }
   else
    {
-     exp_match = assemble_overlap_ef (left, right, 0, n - best_overlap, best_overlap, ai, ef);
+     assemble_overlap(left, right, 0, n - best_overlap, best_overlap, ai);
      
      ai->data[best_overlap]          = 0;
      ai->quality_score[best_overlap] = 0;
@@ -536,7 +538,7 @@ assembly_ef (struct reads_info * left,
   
   
   if (test_method == 1){
-		*kassian_result = stat_test (p_value, exp_match, best_overlap, ef->q);
+		*kassian_result = stat_test2 (p_value, best_score, min_overlap, ef->q);
   }else{
         *kassian_result = stat_test2 (p_value, best_score, best_overlap, ef->q);
   }
@@ -566,8 +568,8 @@ assembly (struct reads_info * left,
   int                   best_overlap = 0;       /* overlap of the best alignment */
   int                   run_through = 0;
   int                   nMatch;
-  double exp_match;
-  int asm_len = 0;
+  //double                exp_match; // this is not used any more
+  int                   asm_len = 0;
   *uncalled = 0;
   
   n = strlen (left->data);
@@ -615,7 +617,7 @@ assembly (struct reads_info * left,
      memcpy (ai->data,          left->data,          n - best_overlap);
      memcpy (ai->quality_score, left->quality_score, n - best_overlap);
 
-     exp_match = assemble_overlap (left, right, n - best_overlap, 0, best_overlap, ai);
+     assemble_overlap (left, right, n - best_overlap, 0, best_overlap, ai);
  
      memcpy (ai->data          + n, right->data          + best_overlap,  n - best_overlap);
      memcpy (ai->quality_score + n, right->quality_score + best_overlap,  n - best_overlap);
@@ -626,7 +628,7 @@ assembly (struct reads_info * left,
    }
   else
    {
-     exp_match = assemble_overlap (left, right, 0, n - best_overlap, best_overlap, ai);
+     assemble_overlap (left, right, 0, n - best_overlap, best_overlap, ai);
      
      ai->data[best_overlap]          = 0;
      ai->quality_score[best_overlap] = 0;
@@ -641,7 +643,7 @@ assembly (struct reads_info * left,
 
 
   if (test_method == 1){
-		*kassian_result = stat_test (p_value, exp_match, best_overlap, 0.25);
+		*kassian_result = stat_test2 (p_value, best_score, min_overlap, 0.25);
   }else{
         *kassian_result = stat_test2 (p_value, best_score, best_overlap, 0.25);
   }
@@ -655,7 +657,7 @@ assemble_overlap (struct reads_info * left, struct reads_info * right, int base_
   int           i; 
   char          x, y;
   char          qx, qy;
-  double        exp_match  = 0;
+  //double        exp_match  = 0;
 
   for (i = 0; i < ol_size; ++i)
    {
@@ -665,19 +667,19 @@ assemble_overlap (struct reads_info * left, struct reads_info * right, int base_
      qy = right->quality_score[base_right + i];
      if ( (x == 'N' || x == 'n') && (y == 'N' || y == 'n'))
       {
-        exp_match += 0.25; 
+        //exp_match += 0.25; 
         ai->data[base_left + i]          = 'N';
         ai->quality_score[base_left + i] = ( qx < qy ) ? qx : qy;
       }
      else if (x == 'N' || x == 'n')
       {
-        exp_match += 0.25; 
+        //exp_match += 0.25; 
         ai->data[base_left + i]          = y;
         ai->quality_score[base_left + i] = qy;
       }
      else if (y == 'N' || y == 'n')
       {
-        exp_match += 0.25; 
+        //exp_match += 0.25; 
         ai->data[base_left + i]          = x;
         ai->quality_score[base_left + i] = qx;
       }
@@ -685,14 +687,14 @@ assemble_overlap (struct reads_info * left, struct reads_info * right, int base_
       {
         if (x == y)
          {
-           exp_match += (sc_eq[(int)qx][(int)qy] / match_score);
+           //exp_match += (sc_eq[(int)qx][(int)qy] / match_score);
            
            ai->data[base_left + i] = x;
            ai->quality_score[base_left + i] = (right->quality_score[base_right + i] - PHRED_INIT) + (left->quality_score[base_left + i] - PHRED_INIT) + PHRED_INIT; //qs_mul[qx][qy];
          }
         else
          {
-           exp_match += (1 - sc_neq[(int)qx][(int)qy] / mismatch_score);
+           //exp_match += (1 - sc_neq[(int)qx][(int)qy] / mismatch_score);
            
            if (qx > qy)
             {
@@ -707,10 +709,12 @@ assemble_overlap (struct reads_info * left, struct reads_info * right, int base_
          }
       }
    }
-  if (ol_size == 0) return (0);
-  return (exp_match / (double)ol_size);
+  //if (ol_size == 0) return (0);
+  //return (exp_match / (double)ol_size);
+  return (0);
 }
 
+/*
 double
 assemble_overlap_ef (struct reads_info * left, struct reads_info * right, int base_left, int base_right, int ol_size, struct asm_info * ai, struct emp_freq  * ef)
 {
@@ -845,6 +849,7 @@ assemble_overlap_ef (struct reads_info * left, struct reads_info * right, int ba
   if (ol_size == 0) return (0);
   return (exp_match / (double)ol_size);
 }
+*/
 
 char * 
 strrev (const char * s)

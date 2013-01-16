@@ -57,6 +57,22 @@ stat_test (double pval, double f, int min_overlap, double q)
   return (0);
 }
 
+/*
+int stat_test2 (double pval, double oes, int min_overlap, double q)
+{
+
+    if (pval == 1.0)
+   {
+	   return (1);
+   } 
+
+  if (oes > 33) return (1);
+
+  return (0);
+}
+*/
+
+
 int stat_test2 (double pval, double oes, int min_overlap, double q)
 {
   double * table_ptr;
@@ -91,3 +107,4 @@ int stat_test2 (double pval, double oes, int min_overlap, double q)
 
   return (0);
 }
+

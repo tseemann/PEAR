@@ -65,21 +65,25 @@ void usage (void)
                    "                                        1 to process all sequences independent on the number of uncalled\n"
                    "                                        bases. (default: 1)\n");
   fprintf (stdout, "  -g, --test-method           <int>     Statistical test method: (default: 1)\n"
-				   "                                        1: Test using the fraction of base matches\n"
-				   "                                        2: Test using the OES\n"
-				   "                                        The two tests are very similar, the second test is conceptually more advanced.\n"
-				   "                                        However, due to the discret nature of the second test, it usually gives a lower\n"
-				   "                                        p-value for assembled reads than the specified one.\n"
-				   "                                        For example, set p-value = 0.05, using the second test, the assembled reads \n"
-				   "                                        might have a p-value of 0.02. This means, using the same p-value, the second \n"
-				   "                                        test is more strict (accurate) than the first one, and assembles less reads.\n");
+				   "                                        1: Test using the highest OES, given the minimum overlap allowed.\n"
+				   "                                           Note due to the discret nature of the test, it usually gives a lower p-value\n" 
+                   "                                           for assembled sequences than the specified one. For example, set p-value = 0.05,\n" 
+                   "                                           using this test, the assembled reads might have an actual p-value of 0.02.\n"
+				   "                                        2: Using the acceptance probability. \n"
+				   "                                           Test method 2 calculate the same probability as test1, but assumes the minimal overlap\n"
+				   "                                           is the observed overlap who has the highest OES, instead of the minimum allowed overlap \n"
+				   "                                           predefined as input parameter (-v). Therefore, it is not a valid statistical test, the \n"
+				   "                                           'p-value' is really the maximal probability we accpet the assembly. However, we found \n"
+				   "                                           in practice, when the actual overlap sizes are small, test 2 can produce more correctly \n"
+				   "                                           assembled sequences with only slightly higher false-positive rates.\n");
+				
   fprintf (stdout, "  -e, --empirical-freqs                 Use empirical base frequencies. (default: not)\n");
   fprintf (stdout, "  -s, --score-method          <int>     Scoring method\n"
 				   "                                        1: OES with +1 for match and -1 for mismatch.\n"
 				   "                                        2: Scaled score, use the probobality of bases been correct or wrong to scale \n"
-				   "                                           the score in method 3.\n"
+				   "                                           the score in method 3 (both tests are invalid in use this method).\n"
 				   "                                        3: +1 for a match, -1 for a mismatch, ignoring the quality scores.\n"
-				   "                                        (default: 1)\n");				   		
+				   "                                        (both tests are invalid if use this method 2 or 3)(default: 1)\n");				   		
   fprintf (stdout, "  -b, --phred-base            <int>     Base Phred quality score (default: 33)\n");
   fprintf (stdout, "  -h, --help                            This help screen.\n\n");
 }
