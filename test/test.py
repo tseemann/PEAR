@@ -111,6 +111,21 @@ def publication_data():
 						  truelenfile = "16S_101bp_len.txt", 
 						  testname = "101bpt_t01",
 						  testw = "1")
+	num101bpt_t01 = test_pear(forward = "16S_101bp1.fq.through.fastq", 
+						  reverse = "16S_101bp2.fq.through.fastq", 
+						  output = "to1", 
+						  pvalue = "0.01", 
+						  minoverlap = "1", 
+						  maxlen = "500", 
+						  minlen = "50", 
+						  mintrimlen = "50", 
+						  minquality = "0", 
+						  maxuncalled = "1", 
+						  scoremethod = "1", 
+						  empirical_freqs = "yes", 
+						  truelenfile = "16S_101bp_len.txt", 
+						  testname = "101bpt_t2_01",
+						  testw = "2")
 	num101bp_nt = test_pear(forward = "16S_101bp1.fq", 
 						  reverse = "16S_101bp2.fq", 
 						  output = "to1", 
@@ -141,6 +156,21 @@ def publication_data():
 						  truelenfile = "16S_101bp_len.txt", 
 						  testname = "101bp_t01",
 						  testw = "1")
+	num101bp_t01 = test_pear(forward = "16S_101bp1.fq", 
+						  reverse = "16S_101bp2.fq", 
+						  output = "to1", 
+						  pvalue = "0.01", 
+						  minoverlap = "1", 
+						  maxlen = "500", 
+						  minlen = "50", 
+						  mintrimlen = "50", 
+						  minquality = "0", 
+						  maxuncalled = "1", 
+						  scoremethod = "1", 
+						  empirical_freqs = "yes", 
+						  truelenfile = "16S_101bp_len.txt", 
+						  testname = "101bp_t2_01",
+						  testw = "2")
 	num101bp_nt = test_pear(forward = "16S_150bp1.fq", 
 						  reverse = "16S_150bp2.fq", 
 						  output = "to1", 
@@ -171,6 +201,21 @@ def publication_data():
 						  truelenfile = "16S_150bp_len.txt", 
 						  testname = "150bp_t01",
 						  testw = "1")
+	num101bp_t01 = test_pear(forward = "16S_150bp1.fq", 
+						  reverse = "16S_150bp2.fq", 
+						  output = "to1", 
+						  pvalue = "0.01", 
+						  minoverlap = "1", 
+						  maxlen = "500", 
+						  minlen = "50", 
+						  mintrimlen = "50", 
+						  minquality = "0", 
+						  maxuncalled = "1", 
+						  scoremethod = "1", 
+						  empirical_freqs = "yes", 
+						  truelenfile = "16S_150bp_len.txt", 
+						  testname = "150bp_t2_01",
+						  testw = "2")
 	num101bp_nt = test_pear(forward = "16S_165bp1.fq", 
 						  reverse = "16S_165bp2.fq", 
 						  output = "to1", 
@@ -201,6 +246,21 @@ def publication_data():
 						  truelenfile = "16S_165bp_len.txt", 
 						  testname = "165bp_t01",
 						  testw = "1")
+	num101bp_t01 = test_pear(forward = "16S_165bp1.fq", 
+						  reverse = "16S_165bp2.fq", 
+						  output = "to1", 
+						  pvalue = "0.01", 
+						  minoverlap = "1", 
+						  maxlen = "500", 
+						  minlen = "50", 
+						  mintrimlen = "50", 
+						  minquality = "0", 
+						  maxuncalled = "1", 
+						  scoremethod = "1", 
+						  empirical_freqs = "yes", 
+						  truelenfile = "16S_165bp_len.txt", 
+						  testname = "165bp_t2_01",
+						  testw = "2")
 	num101bp_nt = test_pear(forward = "16S_180bp1.fq", 
 						  reverse = "16S_180bp2.fq", 
 						  output = "to1", 
@@ -231,6 +291,21 @@ def publication_data():
 						  truelenfile = "16S_180bp_len.txt", 
 						  testname = "180bp_t01",
 						  testw = "1")
+	num101bp_t01 = test_pear(forward = "16S_180bp1.fq", 
+						  reverse = "16S_180bp2.fq", 
+						  output = "to1", 
+						  pvalue = "0.01", 
+						  minoverlap = "1", 
+						  maxlen = "500", 
+						  minlen = "50", 
+						  mintrimlen = "50", 
+						  minquality = "0", 
+						  maxuncalled = "1", 
+						  scoremethod = "1", 
+						  empirical_freqs = "yes", 
+						  truelenfile = "16S_180bp_len.txt", 
+						  testname = "180bp_t2_01",
+						  testw = "2")
 	num101bp_nt = test_pear(forward = "16S_190bp1.fq", 
 						  reverse = "16S_190bp2.fq", 
 						  output = "to1", 
@@ -261,6 +336,21 @@ def publication_data():
 						  truelenfile = "16S_190bp_len.txt", 
 						  testname = "190bp_t01",
 						  testw = "1")
+	num101bp_t01 = test_pear(forward = "16S_190bp1.fq", 
+						  reverse = "16S_190bp2.fq", 
+						  output = "to1", 
+						  pvalue = "0.01", 
+						  minoverlap = "1", 
+						  maxlen = "500", 
+						  minlen = "50", 
+						  mintrimlen = "50", 
+						  minquality = "0", 
+						  maxuncalled = "1", 
+						  scoremethod = "1", 
+						  empirical_freqs = "yes", 
+						  truelenfile = "16S_190bp_len.txt", 
+						  testname = "190bp_t2_01",
+						  testw = "2")
 	num101bp_nt = test_pear(forward = "16S_250bp1.fq", 
 						  reverse = "16S_250bp2.fq", 
 						  output = "to1", 
@@ -291,10 +381,9 @@ def publication_data():
 						  truelenfile = "16S_250bp_len.txt", 
 						  testname = "250bp_t01",
 						  testw = "1")
-						  
-	num101bp_nt = test_pear(forward = "16S_165bp1.fq", 
-						  reverse = "16S_165bp2.fq", 
-						  output = "165bpplot", 
+	num101bp_t01 = test_pear(forward = "16S_250bp1.fq", 
+						  reverse = "16S_250bp2.fq", 
+						  output = "to1", 
 						  pvalue = "0.01", 
 						  minoverlap = "1", 
 						  maxlen = "500", 
@@ -304,9 +393,14 @@ def publication_data():
 						  maxuncalled = "1", 
 						  scoremethod = "1", 
 						  empirical_freqs = "yes", 
-						  truelenfile = "16S_165bp_len.txt", 
-						  testname = "165bp_nt",
-						  testw = "1")
+						  truelenfile = "16S_250bp_len.txt", 
+						  testname = "250bp_t2_01",
+						  testw = "2")
+	os.remove("to1.assembled.fastq")
+	os.remove("to1.discarded.fastq")
+	os.remove("to1.unassembled.forward.fastq")
+	os.remove("to1.unassembled.reverse.fastq")
+						  
 
 
 
@@ -772,14 +866,12 @@ def main():
 	os.remove("to1.unassembled.reverse.fastq")
 	
 	
-	if 	(num101bpt_t1 == 33068 and 
+	if 	(num101bpt_t1 == 33023 and 
 		num150bp_t2 == 28228 and 
-		num165bp_t1_o10 == 26413 and 
-		num180bp_t1 == 20483 and 
-		num180bp_t1_001 == 17341 and
+		num165bp_t1_o10 == 25821 and 
+		num180bp_t1 == 18118 and 
+		num180bp_t1_001 == 14680 and
 		num180bp_t2_001 == 15532 and 
-		num180bp_t1_m2 == 20459 and 
-		num180bp_t1_m3 == 20242 and 
 		num190bp_nt == 17075 and 
 		num250bp_t2 == 23060):
 			print("Tests passed!")
@@ -787,5 +879,5 @@ def main():
 		print("Warnning: tests failed!")				  
 	
 
-#main()
-publication_data()
+main()
+#publication_data()
