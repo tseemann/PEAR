@@ -851,29 +851,6 @@ assemble_overlap_ef (struct reads_info * left, struct reads_info * right, int ba
 }
 */
 
-char * 
-strrev (const char * s)
- {
-   char       * rev;
-   int          i;
-   int          j;
-
-   if (!s) return (NULL);
-
-   rev = strdup (s);
-   i   = strlen (s);
-   j   = 0;
-
-   while (i)
-    {
-      rev[j] = s[i - 1];
-      ++ j;
-      -- i;
-    }
-
-   return (rev);
- }
-
 void mstrrev (char * s)
 {
   char * q = s;
@@ -882,76 +859,38 @@ void mstrrev (char * s)
 
   for (--q; s < q; ++s, --q)
    {
-     *p = *p ^ *q;
-     *q = *p ^ *q;
-     *p = *p ^ *q
+     *s = *s ^ *q;
+     *q = *s ^ *q;
+     *s = *s ^ *q;
    }
-}
-
-
-char * 
-strcpl (const char * s)
-{
-  char        * cpl;
-  int           i, len;
-
-  if (!s) return (NULL);
-
-  cpl = strdup (s);
-  len = strlen (s);
-
-  for (i = 0; i < len; ++ i)
-   {
-     switch (s[i])
-      {
-        case 'A':
-        case 'a':
-                  cpl[i] = 'T';
-                  break;
-        case 'C':
-        case 'c':
-                  cpl[i] = 'G';
-                  break;
-        case 'G':
-        case 'g':
-                  cpl[i] = 'C';
-                  break;
-        case 'T':
-        case 't':
-                  cpl[i] = 'A';
-                  break;
-        default:
-                  cpl[i] = s[i];
-      }
-   }
-  return (cpl);
 }
 
 void mstrcpl (char * s)
 {
+  if (!s) return;
+
   while (*s)
    {
-     switch (s[i])
+     switch (*s)
       {
         case 'A':
         case 'a':
-                  s[i] = 'T';
+                  *s = 'T';
                   break;
         case 'C':
         case 'c':
-                  s[i] = 'G';
+                  *s = 'G';
                   break;
         case 'G':
         case 'g':
-                  s[i] = 'C';
+                  *s = 'C';
                   break;
         case 'T':
         case 't':
-                  s[i] = 'A';
+                  *s = 'A';
                   break;
-        default:
-                  s[i] = s[i];
       }
+     ++s;
    }
 }
 
@@ -993,9 +932,8 @@ main (int argc, char * argv[])
   int                   i, trim_len_fw, trim_len_rev;
   struct reads_info  ** ri_left;
   struct reads_info  ** ri_right;
-  //int                   cnt_reads_left;
-  //int                   cnt_reads_right;
-  char                * rev;
+  int                   cnt_reads_left;
+  int                   cnt_reads_right;
   struct asm_info     * ai;
   int                   read_size;
   int                 * qs_lps;
@@ -1008,8 +946,8 @@ main (int argc, char * argv[])
   struct user_args      sw;
   struct emp_freq * ef;
   int kassian_result;
-  struct block_t fwd_block;
-  struct block_t rev_block;
+  //struct block_t fwd_block;
+  //struct block_t rev_block;
 
   if (!decode_switches (argc, argv, &sw))
    {
@@ -1034,13 +972,9 @@ main (int argc, char * argv[])
   /* reverse the right ends */
   for (i = 0; i < cnt_reads_right; ++ i)
    {
-     rev = strrev (ri_right[i]->data);
-     free (ri_right[i]->data);
-     ri_right[i]->data = strcpl (rev);
-     free (rev);
-     rev = strrev(ri_right[i]->quality_score);
-     free (ri_right[i]->quality_score);
-     ri_right[i]->quality_score = rev;
+     mstrrev (ri_right[i]->data);
+     mstrcpl (ri_right[i]->data);
+     mstrrev(ri_right[i]->quality_score);
    }
 
   /* allocate memory for the assembled results */

@@ -19,6 +19,6 @@ statistics.o: statistics.c
 	gcc -c -Wall -fopenmp -fomit-frame-pointer -lm -O2 $+ -o $@
 
 clean:
-	-rm pear pear.o fastq.o args.o bintest.o statistics.o
+	-rm pear pear.o fastq.o args.o statistics.o
 
 .PHONY: all clean
