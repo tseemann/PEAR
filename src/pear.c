@@ -874,6 +874,21 @@ strrev (const char * s)
    return (rev);
  }
 
+void mstrrev (char * s)
+{
+  char * q = s;
+
+  while (q && *q) ++q;
+
+  for (--q; s < q; ++s, --q)
+   {
+     *p = *p ^ *q;
+     *q = *p ^ *q;
+     *p = *p ^ *q
+   }
+}
+
+
 char * 
 strcpl (const char * s)
 {
@@ -912,6 +927,35 @@ strcpl (const char * s)
   return (cpl);
 }
 
+void mstrcpl (char * s)
+{
+  while (*s)
+   {
+     switch (s[i])
+      {
+        case 'A':
+        case 'a':
+                  s[i] = 'T';
+                  break;
+        case 'C':
+        case 'c':
+                  s[i] = 'G';
+                  break;
+        case 'G':
+        case 'g':
+                  s[i] = 'C';
+                  break;
+        case 'T':
+        case 't':
+                  s[i] = 'A';
+                  break;
+        default:
+                  s[i] = s[i];
+      }
+   }
+}
+
+
 int 
 validate_input (int nleft, int nright)
 {
@@ -949,8 +993,8 @@ main (int argc, char * argv[])
   int                   i, trim_len_fw, trim_len_rev;
   struct reads_info  ** ri_left;
   struct reads_info  ** ri_right;
-  int                   cnt_reads_left;
-  int                   cnt_reads_right;
+  //int                   cnt_reads_left;
+  //int                   cnt_reads_right;
   char                * rev;
   struct asm_info     * ai;
   int                   read_size;
@@ -964,6 +1008,8 @@ main (int argc, char * argv[])
   struct user_args      sw;
   struct emp_freq * ef;
   int kassian_result;
+  struct block_t fwd_block;
+  struct block_t rev_block;
 
   if (!decode_switches (argc, argv, &sw))
    {
