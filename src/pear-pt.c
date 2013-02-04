@@ -1071,8 +1071,15 @@ main (int argc, char * argv[])
   struct emp_freq * ef;
   struct block_t fwd_block;
   struct block_t rev_block;
+  struct block_t dbfwd_block;
+  struct block_t dbrev_block;
   char                  two_piece;
   int elms;
+  int flip = 0;
+  struct read_t ** fwd;
+  struct read_t ** rev;
+  int tmp_elms = 0;
+  int end = 0;
 
   if (!decode_switches (argc, argv, &sw))
    {
@@ -1112,7 +1119,8 @@ main (int argc, char * argv[])
   */
   
 
-  init_fastq_reader (sw.fastq_left, sw.fastq_right, 100000000, &fwd_block, &rev_block);
+  init_fastq_reader_double_buffer (sw.fastq_left, sw.fastq_right, 500000000, &fwd_block, &rev_block, &dbfwd_block, &dbrev_block);
+  //init_fastq_reader (sw.fastq_left, sw.fastq_right, 100000000, &fwd_block, &rev_block);
 
   /* construct output file names */
   out[0] = makefilename (sw.outfile, ".assembled.fastq");
@@ -1128,83 +1136,115 @@ main (int argc, char * argv[])
 
   while (1)
    {
-     elms = get_next_reads (&fwd_block, &rev_block);
-     if (!elms) break;
-     read_size = strlen (fwd_block.reads[0]->data);
-     printf ("%d elms (Seq)\n", elms);
-     
+       if (flip == 0)
+        {
+          if (end == 1) break;
+          tmp_elms = elms = get_next_reads (&fwd_block, &rev_block);
+          if (!elms) break;
+          read_size = strlen (fwd_block.reads[0]->data);
+          flip = 1;
+        }
+       if (flip == 1)
+        {
+          fwd = fwd_block.reads;
+          rev = rev_block.reads;
+          elms = tmp_elms;
+        }
+       else
+        {
+          fwd = dbfwd_block.reads;
+          rev = dbrev_block.reads;
+          elms = tmp_elms;
+        }
+
      //#pragma omp parallel shared(fwd_block.reads, rev_block.reads, ai) private(i, ass, uncalled, kassian_result) 
      #pragma omp parallel private(i, ass) 
      {
-       /* flags[i] = 1 (assembled)  0 (discarded) 2 (unassembled) */
+       #pragma omp master
+       {
+         if (flip == 1)
+          {
+            tmp_elms = db_get_next_reads (&dbfwd_block, &dbrev_block, &fwd_block, &rev_block);
+            flip = 2;
+          }
+         else
+          {
+            tmp_elms = db_get_next_reads (&fwd_block, &rev_block, &dbfwd_block, &dbrev_block);
+            flip = 1;
+          }
+         if (!tmp_elms) {flip = 0; end = 1;}
+       }
+       
+       /* do the memory reading here */
        #pragma omp for schedule (dynamic)
        for (i = 0; i < elms; ++ i)
         {
-          mstrrev (rev_block.reads[i]->data);
-          mstrcpl (rev_block.reads[i]->data);
-          mstrrev (rev_block.reads[i]->qscore);
+          mstrrev (rev[i]->data);
+          mstrcpl (rev[i]->data);
+          mstrrev (rev[i]->qscore);
+
           if (sw.emp_freqs == 0)
            {
-             ass = assembly (fwd_block.reads[i], rev_block.reads[i], match_score, mismatch_score, &sw);
-             *(fwd_block.reads[i]->qscore - 1) = ass;
+             ass = assembly (fwd[i], rev[i], match_score, mismatch_score, &sw);
+             *(fwd[i]->qscore - 1) = ass;
            }
           else
           {
-             ass = assembly_ef (fwd_block.reads[i], rev_block.reads[i], match_score, mismatch_score, ef, &sw);
-             *(fwd_block.reads[i]->qscore - 1) = ass;
+             ass = assembly_ef (fwd[i], rev[i], match_score, mismatch_score, ef, &sw);
+             *(fwd[i]->qscore - 1) = ass;
            }
         }
      }
 
      for ( i = 0; i < elms; ++ i)
       {
-        two_piece = *(fwd_block.reads[i]->data - 1);
-        *(fwd_block.reads[i]->data - 1) = 0;
+        two_piece = *(fwd[i]->data - 1);
+        *(fwd[i]->data - 1) = 0;
 
-        if (*(fwd_block.reads[i]->qscore - 1) == 1)   /* assembled */
+        if (*(fwd[i]->qscore - 1) == 1)   /* assembled */
          {
-           *(fwd_block.reads[i]->qscore - 1) = 0;
-           fprintf (fd[0], "%s\n", fwd_block.reads[i]->header);
+           *(fwd[i]->qscore - 1) = 0;
+           fprintf (fd[0], "%s\n", fwd[i]->header);
            if (!two_piece)
             {
-              fprintf (fd[0], "%s\n", fwd_block.reads[i]->data);
+              fprintf (fd[0], "%s\n", fwd[i]->data);
             }
            else
             {
-              fprintf (fd[0], "%s",   fwd_block.reads[i]->data);
-              fprintf (fd[0], "%s\n", rev_block.reads[i]->data);
+              fprintf (fd[0], "%s",   fwd[i]->data);
+              fprintf (fd[0], "%s\n", rev[i]->data);
             }
            fprintf (fd[0], "+\n");
 
            if (!two_piece)
             {
-              fprintf (fd[0], "%s\n", fwd_block.reads[i]->qscore);
+              fprintf (fd[0], "%s\n", fwd[i]->qscore);
             }
            else
             {
-              fprintf (fd[0], "%s",   fwd_block.reads[i]->qscore);
-              fprintf (fd[0], "%s\n", rev_block.reads[i]->qscore);
+              fprintf (fd[0], "%s",   fwd[i]->qscore);
+              fprintf (fd[0], "%s\n", rev[i]->qscore);
             }
          }
         else                                            /* not assembled */
          {
-           *(fwd_block.reads[i]->qscore - 1) = 0;
-           trim_len_fw  = trim (fwd_block.reads[i], sw.qual_thres, read_size, &uncalled_forward);
-           trim_len_rev = trim_cpl (rev_block.reads[i], sw.qual_thres, read_size, &uncalled_reverse);
+           *(fwd[i]->qscore - 1) = 0;
+           trim_len_fw  = trim (fwd[i], sw.qual_thres, read_size, &uncalled_forward);
+           trim_len_rev = trim_cpl (rev[i], sw.qual_thres, read_size, &uncalled_reverse);
            if (trim_len_fw < sw.min_trim_len || trim_len_rev < sw.min_trim_len || uncalled_forward >= sw.max_uncalled || uncalled_reverse >= sw.max_uncalled)
             { /* discarded reads*/
               /* Maybe consider printing the untrimmed sequences */
-              fprintf (fd[3], "%s\n", fwd_block.reads[i]->header);
-              fprintf (fd[3], "%s\n+\n%s\n", fwd_block.reads[i]->data,  fwd_block.reads[i]->qscore);
-              fprintf (fd[3], "%s\n", rev_block.reads[i]->header);
-              fprintf (fd[3], "%s\n+\n%s\n", rev_block.reads[i]->data, rev_block.reads[i]->qscore); /* printing the reverse compliment of the original sequence */
+              fprintf (fd[3], "%s\n", fwd[i]->header);
+              fprintf (fd[3], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
+              fprintf (fd[3], "%s\n", rev[i]->header);
+              fprintf (fd[3], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
             }
            else   /* unassembled reads*/
             {
-              fprintf (fd[1], "%s\n", fwd_block.reads[i]->header);
-              fprintf (fd[2], "%s\n", rev_block.reads[i]->header);
-              fprintf (fd[1], "%s\n+\n%s\n", fwd_block.reads[i]->data,  fwd_block.reads[i]->qscore);
-              fprintf (fd[2], "%s\n+\n%s\n", rev_block.reads[i]->data, rev_block.reads[i]->qscore); /* printing the reverse compliment of the original sequence */
+              fprintf (fd[1], "%s\n", fwd[i]->header);
+              fprintf (fd[2], "%s\n", rev[i]->header);
+              fprintf (fd[1], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
+              fprintf (fd[2], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
             }
          }
       }
