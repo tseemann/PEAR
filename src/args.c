@@ -97,6 +97,7 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
   /* initialization */
   sw->fastq_left    = NULL;
   sw->fastq_right   = NULL;
+  sw->outfile       = NULL;
   sw->min_asm_len   = 50;
   sw->max_asm_len   = 999999;
   sw->qual_thres    = 0;
@@ -235,5 +236,5 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
           break;
       }
    }
-  return (sw->fastq_left && sw->fastq_right);
+  return (sw->fastq_left && sw->fastq_right && sw->outfile);
 }
