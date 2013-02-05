@@ -109,7 +109,7 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
   sw->geom_mean     = 0;
   sw->min_trim_len  = 1;
   sw->score_method  = 1;
-  sw->test  = 1;
+  sw->test          = 1;
 
 
   while ((opt = getopt_long(argc, argv, "b:ef:g:hm:n:o:p:q:r:s:t:u:v:", long_options, &oi)) != -1)
@@ -134,12 +134,15 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
           break;
 
         case 'g':
-          if (!strcmp (optarg, "1") || !strcmp (optarg, "2")){
-			sw->test = (int) strtol (optarg, &ep, 10);
-		  }else{
-			 printf ("Invalid testing method.\n");
+          if (!strcmp (optarg, "1") || !strcmp (optarg, "2"))
+           {
+             sw->test = (int) strtol (optarg, &ep, 10);
+           }
+          else
+           {
+             printf ("Invalid testing method.\n");
              return (0);
-		  }
+           }
           break;
 
         case 'h':
@@ -194,12 +197,15 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
           break;
 
         case 's':
-          if (!strcmp (optarg, "1") || !strcmp (optarg, "2") || !strcmp (optarg, "3") ){
-			sw->score_method = (int) strtol (optarg, &ep, 10);
-		  }else{
-			 printf ("Invalid score-method.\n");
+          if (!strcmp (optarg, "1") || !strcmp (optarg, "2") || !strcmp (optarg, "3") )
+           {
+             sw->score_method = (int) strtol (optarg, &ep, 10);
+           }
+          else
+           {
+             printf ("Invalid score-method.\n");
              return (0);
-		  }
+           }
           if (ep == optarg || *ep != '\0' )
            {
              printf ("Invalid score-method.\n");
