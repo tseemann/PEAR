@@ -610,6 +610,37 @@ assembly_ef (struct read_t * left, struct read_t * right, int match_score, int m
   return (1);
 }
 
+/** @brief Assemble two pair-end reads
+    
+    Attempts to assemble two pair-ends reads \a left and \a right using a 
+    scoring method and then checks whether the assembly is successful based
+    on user-defined parameters and a statistical test. The assembly is done
+    by first checking all possible overlaps and picking the one with the best
+    score. Constrain checks for not assemblying are:
+      - Minimum assembly length (user-defined)
+      - Maximum assembly length (user-defined)
+      - Minimum overlap (user-defined)
+      - Number of uncalled bases (user-defined)
+      - Statistical test based on a user-defined p-value
+
+    @param left
+      The forward read
+
+    @param right
+      The reverse read which has already been reversed and complemented
+
+    @param match_score
+      The score in case two base pairs match
+    
+    @param mismatch_score
+      The score in case two pase pairs do not match
+
+    @param sw
+      Structure containing the user-defined parameters
+
+    @return
+      In case the assembly is successful returns \b 1, otherwise \b 0
+*/
 inline int
 assembly (struct read_t * left, struct read_t * right, int match_score, int mismatch_score, struct user_args  * sw)
 {
@@ -736,9 +767,6 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
            assemble_overlap (left, right, n - best_overlap, 0, best_overlap, left);
            memmove (right->data,   right->data   + best_overlap,  n - best_overlap);
            memmove (right->qscore, right->qscore + best_overlap,  n - best_overlap);
-           /* THIS IS WRONG */
-           //memcpy (right->data,   right->data   + best_overlap,  n - best_overlap);
-           //memcpy (right->qscore, right->qscore + best_overlap,  n - best_overlap);
 
            right->data[n   - best_overlap] = 0;
            right->qscore[n - best_overlap] = 0;
