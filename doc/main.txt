@@ -1,0 +1,7 @@
+/** @mainpage Pair-End AssembleR
+  
+    \section intro_sec Introduction
+
+    Das ist PEAR
+
+*/
