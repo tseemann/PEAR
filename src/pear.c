@@ -7,6 +7,11 @@
 #include "emp.h"
 #include "reader.h"
 
+
+/** @file pear.c
+    @brief Main file containing scoring and assembly related functions
+*/
+
 /* possibly implement it such that we keep a number of strings for each diff_cnt */
 
 #define         ALPHA           1
