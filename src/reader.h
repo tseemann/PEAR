@@ -1,7 +1,18 @@
 #ifndef READER_H
 #define READER_H
 
+/** @file reader.h
+    @brief Header file for memory pool and reader
 
+    Contains structures for storing the pair-end reads and for managing memory
+*/
+
+/** @brief Data structure for storing parsed reads
+    
+    Consists of three elements. The \a header is a pointer to the header of the read, \a data
+    is a pointer to the sequence itself and \a qscore points to the quality score sequence of
+    the particular read
+*/
 struct read_t
  {
    char * header;
@@ -9,6 +20,15 @@ struct read_t
    char * qscore;
  };
 
+/** @brief A block representing a memory window of the read files
+    
+    Consists of six elements. \a Reads is the memory space for the
+    \a read_t pointers, \a rawdata is the raw data read from the file,
+    \a rawdata_end points to the memory cell after the last read byte,
+    \a rawdata_size is the number of bytes read and \a max_reads_count
+    is the number of \b complete reads parsed after the parsing routine
+    parses the block
+*/
 struct block_t
  {
    struct read_t ** reads;

@@ -3,7 +3,13 @@
 #include <stdio.h>
 #include <getopt.h>
 
-/** @brief User arguments
+/** @file args.h
+    @brief Header file for command-line arguments
+
+    Header file containing the data structure that is used for storing the
+    user-defined command-line arguments */
+
+/** @brief User-defined arguments data structure
   * 
   * Contains all values of optional and mandatory arguments entered
   * by the user when executing PAIR. It also contains default values

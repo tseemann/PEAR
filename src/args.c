@@ -4,6 +4,19 @@
 #include <string.h>
 #include "args.h"
 
+/** @file args.c
+    @brief Command-line arguments parsing
+
+    A data-structure and code used for handling the command-line arguments
+    parsing phase. 
+*/
+
+
+/** @brief Command-line short and long options
+    
+    Command-line short and the corresponding long options structure required
+    by the \a getopt_long function
+*/
 static struct option long_options[] =
  {
    { "phred-base",        required_argument, NULL, 'b' },
@@ -24,6 +37,10 @@ static struct option long_options[] =
    { NULL,                0,                 NULL, 0   }
  };
 
+/** @brief Usage help screen
+     
+    A help-screen for all command-line options available in PEAR
+*/
 void usage (void)
 {
   fprintf (stdout, " ____  _____    _    ____ \n"); 
@@ -36,7 +53,6 @@ void usage (void)
   fprintf (stdout, "Free for academic use, for commercial use or bug report, please contact:\n");
   fprintf (stdout, "flouris@gmail.com and bestzhangjiajie@gmail.com\n");
   fprintf (stdout, "\n\n"); 
-  
   fprintf (stdout, "Usage: pear <options>\n");
   fprintf (stdout, "Standard (mandatory):\n");
   fprintf (stdout, "  -f, --forward-fastq         <str>     Forward paired-end FASTQ file.\n");
@@ -48,9 +64,9 @@ void usage (void)
                    "                                        reads will be output unassembled.\n"
                    "                                        Set 1.0 to disable the test.(default: 0.01)\n");
   fprintf (stdout, "  -v, --min-overlap           <int>     Minimum overlap (default: 10)\n"
-				   "                                        If the statistical test is used, the min-overlap can in principal be set to 1,\n"
-				   "                                        but in practice setting min-overlap to a proper value will further reduce\n"
-				   "                                        false-positive assemlies, since the data will not be perfect.\n"); 	
+                   "                                        If the statistical test is used, the min-overlap can in principal be set to 1,\n"
+                   "                                        but in practice setting min-overlap to a proper value will further reduce\n"
+                   "                                        false-positive assemlies, since the data will not be perfect.\n"); 	
   fprintf (stdout, "  -m, --max-assembly-length   <int>     Maximum possible size of the assembled sequence.\n");
   fprintf (stdout, "                                        The assembled sequence can be arbitrary long if set\n"
                    "                                        to 0. (default: 0)\n");
@@ -65,29 +81,42 @@ void usage (void)
                    "                                        1 to process all sequences independent on the number of uncalled\n"
                    "                                        bases. (default: 1)\n");
   fprintf (stdout, "  -g, --test-method           <int>     Statistical test method: (default: 1)\n"
-				   "                                        1: Test using the highest OES, given the minimum overlap allowed.\n"
-				   "                                           Note due to the discret nature of the test, it usually gives a lower p-value\n" 
+                   "                                        1: Test using the highest OES, given the minimum overlap allowed.\n"
+                   "                                           Note due to the discret nature of the test, it usually gives a lower p-value\n" 
                    "                                           for assembled sequences than the specified one. For example, set p-value = 0.05,\n" 
                    "                                           using this test, the assembled reads might have an actual p-value of 0.02.\n"
-				   "                                        2: Using the acceptance probability. \n"
-				   "                                           Test method 2 calculate the same probability as test1, but assumes the minimal overlap\n"
-				   "                                           is the observed overlap who has the highest OES, instead of the minimum allowed overlap \n"
-				   "                                           predefined as input parameter (-v). Therefore, it is not a valid statistical test, the \n"
-				   "                                           'p-value' is really the maximal probability we accpet the assembly. However, we found \n"
-				   "                                           in practice, when the actual overlap sizes are small, test 2 can produce more correctly \n"
-				   "                                           assembled sequences with only slightly higher false-positive rates.\n");
-				
+                   "                                        2: Using the acceptance probability. \n"
+                   "                                           Test method 2 calculate the same probability as test1, but assumes the minimal overlap\n"
+                   "                                           is the observed overlap who has the highest OES, instead of the minimum allowed overlap \n"
+                   "                                           predefined as input parameter (-v). Therefore, it is not a valid statistical test, the \n"
+                   "                                           'p-value' is really the maximal probability we accpet the assembly. However, we found \n"
+                   "                                           in practice, when the actual overlap sizes are small, test 2 can produce more correctly \n"
+                   "                                           assembled sequences with only slightly higher false-positive rates.\n");
   fprintf (stdout, "  -e, --empirical-freqs                 Disable empirical base frequencies. (default: use empirical base frequencies)\n");
   fprintf (stdout, "  -s, --score-method          <int>     Scoring method\n"
-				   "                                        1: OES with +1 for match and -1 for mismatch.\n"
-				   "                                        2: Scaled score, use the probobality of bases been correct or wrong to scale \n"
-				   "                                           the score in method 3 (both tests are invalid in use this method).\n"
-				   "                                        3: +1 for a match, -1 for a mismatch, ignoring the quality scores.\n"
-				   "                                        (both tests are invalid if use this method 2 or 3)(default: 1)\n");				   		
+                   "                                        1: OES with +1 for match and -1 for mismatch.\n"
+                   "                                        2: Scaled score, use the probobality of bases been correct or wrong to scale \n"
+                   "                                           the score in method 3 (both tests are invalid in use this method).\n"
+                   "                                        3: +1 for a match, -1 for a mismatch, ignoring the quality scores.\n"
+                   "                                        (both tests are invalid if use this method 2 or 3)(default: 1)\n");				   		
   fprintf (stdout, "  -b, --phred-base            <int>     Base Phred quality score (default: 33)\n");
   fprintf (stdout, "  -h, --help                            This help screen.\n\n");
 }
 
+/** @brief Command-line arguments parser
+    
+    A parser for the command-line options of PEAR. A minimum of the two pair-end
+    reads and output filename must be provided.
+
+    @param argc
+      The number of command-line parameters given
+
+    @param argv
+      The array of command-line parameters
+
+    @param sw
+      The structure where the user-defined switches will be stored in
+*/
 int decode_switches (int argc, char * argv[], struct user_args * sw)
 {
   int    opt;
@@ -110,7 +139,6 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
   sw->min_trim_len  = 1;
   sw->score_method  = 1;
   sw->test          = 1;
-
 
   while ((opt = getopt_long(argc, argv, "b:ef:g:hm:n:o:p:q:r:s:t:u:v:", long_options, &oi)) != -1)
    {
