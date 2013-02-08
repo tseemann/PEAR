@@ -1118,8 +1118,8 @@ main (int argc, char * argv[])
    }
   */
   
-
-  init_fastq_reader_double_buffer (sw.fastq_left, sw.fastq_right, 500000000, &fwd_block, &rev_block, &dbfwd_block, &dbrev_block);
+  // 500 Mb
+  init_fastq_reader_double_buffer (sw.fastq_left, sw.fastq_right, sw.memory, &fwd_block, &rev_block, &dbfwd_block, &dbrev_block);
   //init_fastq_reader (sw.fastq_left, sw.fastq_right, 100000000, &fwd_block, &rev_block);
 
   /* construct output file names */
@@ -1176,7 +1176,7 @@ main (int argc, char * argv[])
        }
        
        /* do the memory reading here */
-       #pragma omp for schedule (dynamic)
+       #pragma omp for schedule (guided)
        for (i = 0; i < elms; ++ i)
         {
           mstrrev (rev[i]->data);

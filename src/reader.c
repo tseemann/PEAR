@@ -17,12 +17,12 @@ static char * mempool;
 
 unsigned int rcount = 0;
 
-void print_number (unsigned int x)
+void print_number (size_t x)
 {
   unsigned int digits;
   unsigned int triplets = 0;
   unsigned int i, j, k;
-  unsigned int num;
+  size_t num;
   unsigned int y[4];
 
   digits = (x > 0) ? (int) log10 ((double)x) + 1 : 1;
@@ -56,7 +56,7 @@ void comp_mem (size_t memsize, size_t * reads_count, size_t * rawdata_size)
   y = READ_SIZE;
   z = sizeof (struct read_t);
 
-  u = (unsigned int) ((double)x / (sizeof(struct read_t *) + y + z));
+  u = (size_t) ((double)x / (sizeof(struct read_t *) + y + z));
 
   *reads_count = u;
   *rawdata_size = u * y;
@@ -81,9 +81,11 @@ struct block_t * sec_fwd, struct block_t * sec_rev)
   comp_mem (memsize / 4, &reads_count, &rawdata_size);
 
   #ifdef PRINT_MEM
+  printf ("tm: %f\n", (double)memsize);
   printf ("Total memory: ");
   print_number(memsize);
   printf ("\n");
+  printf ("Total memory: %ld\n", memsize);
   #endif
 
   #ifdef PRINT_MEM
@@ -125,6 +127,12 @@ struct block_t * sec_fwd, struct block_t * sec_rev)
   fp1 = fopen (file1, "r");
   fp2 = fopen (file2, "r");
 
+  if (!fp1 || !fp2)
+   {
+     fprintf (stderr, "Failed to open files..\n");
+     abort();
+   }
+
   pri_fwd->max_reads_count   = pri_rev->max_reads_count   = reads_count;
   pri_fwd->rawdata_size      = pri_rev->rawdata_size      = rawdata_size;
 
@@ -134,6 +142,12 @@ struct block_t * sec_fwd, struct block_t * sec_rev)
   /* allocate memory */
   //mempool = calloc (1,memsize);
   mempool = malloc (memsize);
+  if (!mempool)
+   {
+     fprintf (stderr, "Failed to allocate memory...\n");
+     abort ();
+   }
+  printf ("Allocating %ld bytes\n", memsize);
 
 
   /* reserve area from mempool for the forwards reads */
@@ -496,6 +510,8 @@ int get_next_reads (struct block_t * fwd_block, struct block_t * rev_block)
   
   n1 = parse_block (fwd_block);
   n2 = parse_block (rev_block);
+
+  printf ("Read %d and %d reads\n", n1, n2);
   
   /* align reads if different count selected */
   if (n1 != n2)
@@ -531,6 +547,7 @@ int db_get_next_reads (struct block_t * fwd_block, struct block_t * rev_block, s
   n1 = parse_block (fwd_block);
   n2 = parse_block (rev_block);
   
+  printf ("Read %d and %d reads\n", n1, n2);
   /* align reads if different count selected */
   if (n1 != n2)
    {

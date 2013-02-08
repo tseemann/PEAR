@@ -2,21 +2,24 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include "fastq.h"
 #include "args.h"
 #include "emp.h"
 #include "reader.h"
 
+/* possibly implement it such that we keep a number of strings for each diff_cnt */
 
-/** @file pear.c
-    @brief Main file containing scoring and assembly related functions
-*/
-
+#define         ALPHA           1
+#define         BETA            2
+#define         MAX_READ_SIZE   300
 #define         PHRED_INIT      33
+
+extern long double * precomp;
 
 //int stat_test (double, double, int, double);
 int stat_test2 (double, double, int, double);
 
-void
+double
 assemble_overlap (struct read_t * left, struct read_t * right, int base_left, int base_right, int ol_size, struct read_t * ai);
 
 /*
@@ -24,26 +27,39 @@ double
 assemble_overlap_ef (struct reads_info * left, struct reads_info * right, int base_left, int base_right, int ol_size, struct asm_info * ai, struct emp_freq  * ef);
 */
 
+struct dp_matrix
+ {
+   int          cnt_match;
+   int          cnt_error;
+   double       score;
+ };
+
 /* TODO: Dynamically allocate them */
-double      sc_eq[256][256];
-double     sc_neq[256][256];
-double     sc_eqA[256][256];
-double     sc_eqC[256][256];
-double     sc_eqG[256][256];
-double     sc_eqT[256][256];
-double   sc_neqAC[256][256];
-double   sc_neqAG[256][256];
-double   sc_neqAT[256][256];
-double   sc_neqCA[256][256];
-double   sc_neqCG[256][256];
-double   sc_neqCT[256][256];
-double   sc_neqGA[256][256];
-double   sc_neqGC[256][256];
-double   sc_neqGT[256][256];
-double   sc_neqTA[256][256];
-double   sc_neqTC[256][256];
-double   sc_neqTG[256][256];
-double     qs_mul[256][256];
+double sc_eq[256][256];
+double sc_neq[256][256];
+
+double sc_eqA[256][256];
+double sc_eqC[256][256];
+double sc_eqG[256][256];
+double sc_eqT[256][256];
+
+double sc_neqAC[256][256];
+double sc_neqAG[256][256];
+double sc_neqAT[256][256];
+
+double sc_neqCA[256][256];
+double sc_neqCG[256][256];
+double sc_neqCT[256][256];
+
+double sc_neqGA[256][256];
+double sc_neqGC[256][256];
+double sc_neqGT[256][256];
+
+double sc_neqTA[256][256];
+double sc_neqTC[256][256];
+double sc_neqTG[256][256];
+
+double qs_mul[256][256];
 
 int match_score    = 1;
 int mismatch_score = 1;
@@ -116,23 +132,6 @@ trim_cpl (struct read_t * read, int min_quality, int len, double * uncalled)
   return (len);
 }
 
-/** @brief Initialize scoring data
-    
-    Initialize scoring data to be used for the scoring method. For every 
-    possible base-pair combination we precompute the score for a match
-    or mismatch for all possible quality scores. For simplicity we consider
-    quality scores from 0 to 255 even if not all of the values are used.
-
-    @param match
-      The score value to be used in case of a match
-
-    @param mismatch
-      The score value to be used in case of a mismatch
-    
-    @param ef
-      Data structure holding the probabilities of base appearance which
-      can be either standard or empirical based on the user input.
-*/
 void init_scores (int match, int mismatch, struct emp_freq * ef)
 {
   int           i, j;
@@ -196,7 +195,6 @@ void init_scores (int match, int mismatch, struct emp_freq * ef)
    }
 }
 
-/** @brief Scoring function */
 inline void
 scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, double * score, int match, int mismatch, struct emp_freq * ef)
 {
@@ -272,10 +270,10 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
                     *score = *score - (sc_neqAC[(int)qleft][(int)qright] - (1 - sc_neqAC[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'G':
-                    *score = *score - (sc_neqAG[(int)qleft][(int)qright] - (1 - sc_neqAG[(int)qleft][(int)qright] / mismatch) * match);
+					*score = *score - (sc_neqAG[(int)qleft][(int)qright] - (1 - sc_neqAG[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'T':
-                    *score = *score - (sc_neqAT[(int)qleft][(int)qright] - (1 - sc_neqAT[(int)qleft][(int)qright] / mismatch) * match);
+					*score = *score - (sc_neqAT[(int)qleft][(int)qright] - (1 - sc_neqAT[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                 }
                break;
@@ -283,13 +281,13 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
                switch (dright)
                 {
                   case 'A':
-                    *score = *score - (sc_neqCA[(int)qleft][(int)qright] - (1 - sc_neqCA[(int)qleft][(int)qright] / mismatch) * match);
+					*score = *score - (sc_neqCA[(int)qleft][(int)qright] - (1 - sc_neqCA[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'G':
-                    *score = *score - (sc_neqCG[(int)qleft][(int)qright] - (1 - sc_neqCG[(int)qleft][(int)qright] / mismatch) * match);
+					*score = *score - (sc_neqCG[(int)qleft][(int)qright] - (1 - sc_neqCG[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'T':
-                    *score = *score - (sc_neqCT[(int)qleft][(int)qright] - (1 - sc_neqCT[(int)qleft][(int)qright] / mismatch) * match);
+					*score = *score - (sc_neqCT[(int)qleft][(int)qright] - (1 - sc_neqCT[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                 }
                break;
@@ -303,7 +301,7 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
                     *score = *score - (sc_neqGC[(int)qleft][(int)qright] - (1 - sc_neqGC[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'T':
-                    *score = *score - (sc_neqGT[(int)qleft][(int)qright] - (1 - sc_neqGT[(int)qleft][(int)qright] / mismatch) * match);
+					*score = *score - (sc_neqGT[(int)qleft][(int)qright] - (1 - sc_neqGT[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                 }
                break;
@@ -311,13 +309,13 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
                switch (dright)
                 {
                   case 'A':
-                    *score = *score - (sc_neqTA[(int)qleft][(int)qright] - (1 - sc_neqTA[(int)qleft][(int)qright] / mismatch) * match);
+					*score = *score - (sc_neqTA[(int)qleft][(int)qright] - (1 - sc_neqTA[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'C':
-                    *score = *score - (sc_neqTC[(int)qleft][(int)qright] - (1 - sc_neqTC[(int)qleft][(int)qright] / mismatch) * match);
+					*score = *score - (sc_neqTC[(int)qleft][(int)qright] - (1 - sc_neqTC[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'G':
-                    *score = *score - (sc_neqTG[(int)qleft][(int)qright] - (1 - sc_neqTG[(int)qleft][(int)qright] / mismatch) * match);
+					*score = *score - (sc_neqTG[(int)qleft][(int)qright] - (1 - sc_neqTG[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                 }
                break;
@@ -393,36 +391,6 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
 }
 
 /* TODO: Remember to speed up this function by doing something with the multiplication and division of match/mismatch */
-/** @brief Scoring function
-    
-    A function that selects a score for a base-pair based on whether the two 
-    bases are equal or not and on their respective quality scores. and updates the score of the 
-    two reads that are currently processed.
-
-    @param dleft
-      Base character from forward read
-
-    @param dright
-      Base character from reverse read
-
-    @param qleft
-      Quality score character from forward read
-
-    @param qright
-      Quality score character from reverse read
-
-    @param score_method
-      Scoring method
-
-    @param score
-      Current score for this pair of reads (the one that will be updated)
-
-    @param match
-      Score to be used in case of match
-
-    @param mismatch
-      Score to be used in case of mismatch
-*/
 inline void 
 scoring (char dleft, char dright, char qleft, char qright, int score_method, double * score, int match, int mismatch)
 {
@@ -473,38 +441,6 @@ scoring (char dleft, char dright, char qleft, char qright, int score_method, dou
    }
 }
 
-/** @brief Assemble two pair-end reads using scoring function that takes into
-           account empirical frequencies.
-    
-    Attempts to assemble two pair-ends reads \a left and \a right using a 
-    scoring method and then checks whether the assembly is successful based
-    on user-defined parameters and a statistical test. The assembly is done
-    by first checking all possible overlaps and picking the one with the best
-    score. Constrain checks for not assemblying are:
-      - Minimum assembly length (user-defined)
-      - Maximum assembly length (user-defined)
-      - Minimum overlap (user-defined)
-      - Number of uncalled bases (user-defined)
-      - Statistical test based on a user-defined p-value
-
-    @param left
-      The forward read
-
-    @param right
-      The reverse read which has already been reversed and complemented
-
-    @param match_score
-      The score in case two base pairs match
-    
-    @param mismatch_score
-      The score in case two pase pairs do not match
-
-    @param sw
-      Structure containing the user-defined parameters
-
-    @return
-      In case the assembly is successful returns \b 1, otherwise \b 0
-*/
 inline int
 assembly_ef (struct read_t * left, struct read_t * right, int match_score, int mismatch_score, struct emp_freq * ef, struct user_args  * sw)
 {
@@ -631,6 +567,9 @@ assembly_ef (struct read_t * left, struct read_t * right, int match_score, int m
            assemble_overlap (left, right, n - best_overlap, 0, best_overlap, left);
            memmove (right->data,   right->data   + best_overlap,  n - best_overlap);
            memmove (right->qscore, right->qscore + best_overlap,  n - best_overlap);
+           /* THIS IS WRONG */
+           //memcpy (right->data,   right->data   + best_overlap,  n - best_overlap);
+           //memcpy (right->qscore, right->qscore + best_overlap,  n - best_overlap);
 
            right->data[n   - best_overlap] = 0;
            right->qscore[n - best_overlap] = 0;
@@ -671,37 +610,6 @@ assembly_ef (struct read_t * left, struct read_t * right, int match_score, int m
   return (1);
 }
 
-/** @brief Assemble two pair-end reads
-    
-    Attempts to assemble two pair-ends reads \a left and \a right using a 
-    scoring method and then checks whether the assembly is successful based
-    on user-defined parameters and a statistical test. The assembly is done
-    by first checking all possible overlaps and picking the one with the best
-    score. Constrain checks for not assemblying are:
-      - Minimum assembly length (user-defined)
-      - Maximum assembly length (user-defined)
-      - Minimum overlap (user-defined)
-      - Number of uncalled bases (user-defined)
-      - Statistical test based on a user-defined p-value
-
-    @param left
-      The forward read
-
-    @param right
-      The reverse read which has already been reversed and complemented
-
-    @param match_score
-      The score in case two base pairs match
-    
-    @param mismatch_score
-      The score in case two pase pairs do not match
-
-    @param sw
-      Structure containing the user-defined parameters
-
-    @return
-      In case the assembly is successful returns \b 1, otherwise \b 0
-*/
 inline int
 assembly (struct read_t * left, struct read_t * right, int match_score, int mismatch_score, struct user_args  * sw)
 {
@@ -828,6 +736,9 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
            assemble_overlap (left, right, n - best_overlap, 0, best_overlap, left);
            memmove (right->data,   right->data   + best_overlap,  n - best_overlap);
            memmove (right->qscore, right->qscore + best_overlap,  n - best_overlap);
+           /* THIS IS WRONG */
+           //memcpy (right->data,   right->data   + best_overlap,  n - best_overlap);
+           //memcpy (right->qscore, right->qscore + best_overlap,  n - best_overlap);
 
            right->data[n   - best_overlap] = 0;
            right->qscore[n - best_overlap] = 0;
@@ -868,30 +779,7 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
   return (1);
 }
 
-/** @brief Assemble an overlap
-
-    Attempt to assemble an overlapping region of two reads. The assembled read
-    is stored by overwriting the forward and (possibly) the reverse read.
-
-    @param left
-      The forward read
-    
-    @param right
-      The reverse read
-
-    @param base_left
-      The offset (base) that the overlap starts on the forward read
-
-    @param base_right
-      The offset (base) that the overlap starts on the reverse read
-
-    @param ol_size
-      Size of the overlap
-
-    @param ai
-      Where to store the assembled read.
-*/
-void
+double
 assemble_overlap (struct read_t * left, struct read_t * right, int base_left, int base_right, int ol_size, struct read_t * ai)
 {
   int           i; 
@@ -908,19 +796,19 @@ assemble_overlap (struct read_t * left, struct read_t * right, int base_left, in
      if ( (x == 'N' || x == 'n') && (y == 'N' || y == 'n'))
       {
         //exp_match += 0.25; sm_len
-        ai->data[base_left + i]   = 'N';
+        ai->data[base_left + i]          = 'N';
         ai->qscore[base_left + i] = ( qx < qy ) ? qx : qy;
       }
      else if (x == 'N' || x == 'n')
       {
         //exp_match += 0.25; 
-        ai->data[base_left + i]   = y;
+        ai->data[base_left + i]          = y;
         ai->qscore[base_left + i] = qy;
       }
      else if (y == 'N' || y == 'n')
       {
         //exp_match += 0.25; 
-        ai->data[base_left + i]   = x;
+        ai->data[base_left + i]          = x;
         ai->qscore[base_left + i] = qx;
       }
      else
@@ -938,26 +826,159 @@ assemble_overlap (struct read_t * left, struct read_t * right, int base_left, in
            
            if (qx > qy)
             {
-              ai->data[base_left + i]   =  x;
+              ai->data[base_left + i]          =  x;
               ai->qscore[base_left + i] = qx;
             }
            else
             {
-              ai->data[base_left + i]   =  y;
+              ai->data[base_left + i]          =  y;
               ai->qscore[base_left + i] = qy;
             }
          }
       }
    }
+  //if (ol_size == 0) return (0);
+  //return (exp_match / (double)ol_size);
+  return (0);
 }
 
-/** @brief Mutable string reverse
-    
-    Reverse a string by modifying it (i.e. destroying the original string)
+/*
+double
+assemble_overlap_ef (struct reads_info * left, struct reads_info * right, int base_left, int base_right, int ol_size, struct asm_info * ai, struct emp_freq  * ef)
+{
+  int           i; 
+  char          x, y;
+  char          qx, qy;
+  double        exp_match  = 0;
 
-    @param s
-      The string to be reversed
+  for (i = 0; i < ol_size; ++i)
+   {
+     x  = left->data[base_left + i]; 
+     y  = right->data[base_right + i];
+     qx = left->qscore[base_left + i];
+     qy = right->qscore[base_right + i];
+     if ( (x == 'N' || x == 'n') && (y == 'N' || y == 'n'))
+      {
+        exp_match += ef->q; 
+        ai->data[base_left + i]          = 'N';
+        ai->qscore[base_left + i] = ( qx < qy ) ? qx : qy;
+      }
+     else if (x == 'N' || x == 'n')
+      {
+        exp_match += ef->q; 
+        ai->data[base_left + i]          = y;
+        ai->qscore[base_left + i] = qy;
+      }
+     else if (y == 'N' || y == 'n')
+      {
+        exp_match += ef->q; 
+        ai->data[base_left + i]          = x;
+        ai->qscore[base_left + i] = qx;
+      }
+     else
+      {
+        if (x == y)
+         {
+           //exp_match += (sc_eq[(int)qx][(int)qy] / match_score);
+           switch (x)
+           {
+             case 'A':
+               exp_match += (sc_eqA[(int)qy][(int)qx] / match_score);
+               break;
+             case 'C':
+               exp_match += (sc_eqC[(int)qy][(int)qx] / match_score);
+               break;
+             case 'G':
+               exp_match += (sc_eqG[(int)qy][(int)qx] / match_score);
+               break;
+             case 'T':
+               exp_match += (sc_eqT[(int)qy][(int)qx] / match_score);
+               break;
+           }
+           ai->data[base_left + i] = x;
+           ai->qscore[base_left + i] = (right->qscore[base_right + i] - PHRED_INIT) + (left->qscore[base_left + i] - PHRED_INIT) + PHRED_INIT; //qs_mul[qx][qy];
+         }
+        else
+         {
+           //exp_match += (1 - sc_neq[(int)qx][(int)qy] / mismatch_score);
+           switch  (x)
+           {
+             case 'A':
+               switch (y)
+                {
+                  case 'C':
+                    exp_match += (1 - sc_neqAC[(int)qx][(int)qy]/mismatch_score);
+                    break;
+                  case 'G':
+                    exp_match += (1 - sc_neqAG[(int)qx][(int)qy]/mismatch_score);
+                    break;
+                  case 'T':
+                    exp_match += (1 - sc_neqAT[(int)qx][(int)qy]/mismatch_score);
+                    break;
+                }
+               break;
+             case 'C':
+               switch (y)
+                {
+                  case 'A':
+                    exp_match += (1 - sc_neqCA[(int)qx][(int)qy]/mismatch_score);
+                    break;
+                  case 'G':
+                    exp_match += (1 - sc_neqCG[(int)qx][(int)qy]/mismatch_score);
+                    break;
+                  case 'T':
+                    exp_match += (1 - sc_neqCT[(int)qx][(int)qy]/mismatch_score);
+                    break;
+                }
+               break;
+             case 'G':
+               switch (y)
+                {
+                  case 'A':
+                    exp_match += (1 - sc_neqGA[(int)qx][(int)qy]/mismatch_score);
+                    break;
+                  case 'C':
+                    exp_match += (1 - sc_neqGC[(int)qx][(int)qy]/mismatch_score);
+                    break;
+                  case 'T':
+                    exp_match += (1 - sc_neqGT[(int)qx][(int)qy]/mismatch_score);
+                    break;
+                }
+               break;
+             case 'T':
+               switch (y)
+                {
+                  case 'A':
+                    exp_match += (1 - sc_neqTA[(int)qx][(int)qy]/mismatch_score);
+                    break;
+                  case 'C':
+                    exp_match += (1 - sc_neqTC[(int)qx][(int)qy]/mismatch_score);
+                    break;
+                  case 'G':
+                    exp_match += (1 - sc_neqTG[(int)qx][(int)qy]/mismatch_score);
+                    break;
+                }
+               break;
+           }
+
+           if (qx > qy)
+            {
+              ai->data[base_left + i]          =  x;
+              ai->qscore[base_left + i] = qx;
+            }
+           else
+            {
+              ai->data[base_left + i]          =  y;
+              ai->qscore[base_left + i] = qy;
+            }
+         }
+      }
+   }
+  if (ol_size == 0) return (0);
+  return (exp_match / (double)ol_size);
+}
 */
+
 void mstrrev (char * s)
 {
   char * q = s;
@@ -972,19 +993,6 @@ void mstrrev (char * s)
    }
 }
 
-/** @brief Mutable DNA string complement
-    
-    Create the complement of a DNA string (sequence) by modifying it (i.e.
-    destroying the original string). The compliment is constructed via the
-    following rules:
-      - A -> T
-      - C -> G
-      - G -> C
-      - T -> A
-
-    @param s
-      The string to be complemented
-*/
 void mstrcpl (char * s)
 {
   if (!s) return;
@@ -1033,20 +1041,6 @@ validate_input (int nleft, int nright)
   return (1);
 }
 
-/** @brief Generate a string for a filename
-    
-    Allocate space for a string that will be consisted of two parts, the prefix
-    and the suffix and concatenate these two parts to create the final string.
-
-    @param prefix
-      The prefix of the final string
-
-    @param suffix
-      The suffix of the final string
-
-    @return
-      A pointer to the final constructed string
-*/
 char *
 makefilename (const char * prefix, const char * suffix)
 {
@@ -1077,8 +1071,15 @@ main (int argc, char * argv[])
   struct emp_freq * ef;
   struct block_t fwd_block;
   struct block_t rev_block;
+  struct block_t dbfwd_block;
+  struct block_t dbrev_block;
   char                  two_piece;
   int elms;
+  int flip = 0;
+  struct read_t ** fwd;
+  struct read_t ** rev;
+  int tmp_elms = 0;
+  int end = 0;
 
   if (!decode_switches (argc, argv, &sw))
    {
@@ -1118,7 +1119,8 @@ main (int argc, char * argv[])
   */
   
 
-  init_fastq_reader (sw.fastq_left, sw.fastq_right, sw.memory, &fwd_block, &rev_block);
+  init_fastq_reader_double_buffer (sw.fastq_left, sw.fastq_right, sw.memory, &fwd_block, &rev_block, &dbfwd_block, &dbrev_block);
+  //init_fastq_reader (sw.fastq_left, sw.fastq_right, 100000000, &fwd_block, &rev_block);
 
   /* construct output file names */
   out[0] = makefilename (sw.outfile, ".assembled.fastq");
@@ -1134,84 +1136,128 @@ main (int argc, char * argv[])
 
   while (1)
    {
-     elms = get_next_reads (&fwd_block, &rev_block);
-     if (!elms) break;
-     read_size = strlen (fwd_block.reads[0]->data);
-//     printf ("%d elms (Seq)\n", elms);
-     
+       if (flip == 0)
+        {
+          if (end == 1) break;
+          tmp_elms = elms = get_next_reads (&fwd_block, &rev_block);
+          if (!elms) break;
+          read_size = strlen (fwd_block.reads[0]->data);
+          flip = 1;
+        }
+       if (flip == 1)
+        {
+          printf ("Flipping!\n");
+          fwd = fwd_block.reads;
+          rev = rev_block.reads;
+          elms = tmp_elms;
+        }
+       else
+        {
+          printf ("Flipping!\n");
+          fwd = dbfwd_block.reads;
+          rev = dbrev_block.reads;
+          elms = tmp_elms;
+        }
+
      //#pragma omp parallel shared(fwd_block.reads, rev_block.reads, ai) private(i, ass, uncalled, kassian_result) 
-     #pragma omp parallel private(i, ass) 
+     #pragma omp parallel private(i, ass, uncalled_forward, uncalled_reverse) 
      {
-       /* flags[i] = 1 (assembled)  0 (discarded) 2 (unassembled) */
-       #pragma omp for schedule (guided)
+       #pragma omp master
+       {
+         if (flip == 1)
+          {
+            tmp_elms = db_get_next_reads (&dbfwd_block, &dbrev_block, &fwd_block, &rev_block);
+            flip = 2;
+          }
+         else
+          {
+            tmp_elms = db_get_next_reads (&fwd_block, &rev_block, &dbfwd_block, &dbrev_block);
+            flip = 1;
+          }
+         if (!tmp_elms) {flip = 0; end = 1;}
+       }
+       
+       /* do the memory reading here */
+       #pragma omp for schedule (runtime)
        for (i = 0; i < elms; ++ i)
         {
-          mstrrev (rev_block.reads[i]->data);
-          mstrcpl (rev_block.reads[i]->data);
-          mstrrev (rev_block.reads[i]->qscore);
+          mstrrev (rev[i]->data);
+          mstrcpl (rev[i]->data);
+          mstrrev (rev[i]->qscore);
+
           if (sw.emp_freqs == 0)
            {
-             ass = assembly (fwd_block.reads[i], rev_block.reads[i], match_score, mismatch_score, &sw);
-             *(fwd_block.reads[i]->qscore - 1) = ass;
+             ass = assembly (fwd[i], rev[i], match_score, mismatch_score, &sw);
+             *(fwd[i]->qscore - 1) = ass;
+            if (!ass)
+              if (trim (fwd[i], sw.qual_thres, read_size, &uncalled_forward) < sw.min_trim_len ||
+                  trim_cpl (rev[i], sw.qual_thres, read_size, &uncalled_reverse) < sw.min_trim_len ||
+                  uncalled_forward >= sw.max_uncalled || uncalled_reverse >= sw.max_uncalled)
+               {
+                 *(fwd[i]->qscore - 1) = 2;
+               }
+              else
+               {
+                 *(fwd[i]->qscore - 1) = 3;
+               }
+              
            }
           else
           {
-             ass = assembly_ef (fwd_block.reads[i], rev_block.reads[i], match_score, mismatch_score, ef, &sw);
-             *(fwd_block.reads[i]->qscore - 1) = ass;
+             ass = assembly_ef (fwd[i], rev[i], match_score, mismatch_score, ef, &sw);
+             *(fwd[i]->qscore - 1) = ass;
            }
         }
      }
 
      for ( i = 0; i < elms; ++ i)
       {
-        two_piece = *(fwd_block.reads[i]->data - 1);
-        *(fwd_block.reads[i]->data - 1) = 0;
+        two_piece = *(fwd[i]->data - 1);
+        *(fwd[i]->data - 1) = 0;
 
-        if (*(fwd_block.reads[i]->qscore - 1) == 1)   /* assembled */
+        if (*(fwd[i]->qscore - 1) == 1)   /* assembled */
          {
-           *(fwd_block.reads[i]->qscore - 1) = 0;
-           fprintf (fd[0], "%s\n", fwd_block.reads[i]->header);
+           *(fwd[i]->qscore - 1) = 0;
+           fprintf (fd[0], "%s\n", fwd[i]->header);
            if (!two_piece)
             {
-              fprintf (fd[0], "%s\n", fwd_block.reads[i]->data);
+              fprintf (fd[0], "%s\n", fwd[i]->data);
             }
            else
             {
-              fprintf (fd[0], "%s",   fwd_block.reads[i]->data);
-              fprintf (fd[0], "%s\n", rev_block.reads[i]->data);
+              fprintf (fd[0], "%s",   fwd[i]->data);
+              fprintf (fd[0], "%s\n", rev[i]->data);
             }
            fprintf (fd[0], "+\n");
 
            if (!two_piece)
             {
-              fprintf (fd[0], "%s\n", fwd_block.reads[i]->qscore);
+              fprintf (fd[0], "%s\n", fwd[i]->qscore);
             }
            else
             {
-              fprintf (fd[0], "%s",   fwd_block.reads[i]->qscore);
-              fprintf (fd[0], "%s\n", rev_block.reads[i]->qscore);
+              fprintf (fd[0], "%s",   fwd[i]->qscore);
+              fprintf (fd[0], "%s\n", rev[i]->qscore);
             }
          }
-        else                                            /* not assembled */
+        else if (*(fwd[i]->qscore - 1) == 2)                                            /* not assembled */
          {
-           *(fwd_block.reads[i]->qscore - 1) = 0;
-           trim_len_fw  = trim (fwd_block.reads[i], sw.qual_thres, read_size, &uncalled_forward);
-           trim_len_rev = trim_cpl (rev_block.reads[i], sw.qual_thres, read_size, &uncalled_reverse);
-           if (trim_len_fw < sw.min_trim_len || trim_len_rev < sw.min_trim_len || uncalled_forward >= sw.max_uncalled || uncalled_reverse >= sw.max_uncalled)
-            { /* discarded reads*/
+           *(fwd[i]->qscore - 1) = 0;
+              /* discarded reads*/
               /* Maybe consider printing the untrimmed sequences */
-              fprintf (fd[3], "%s\n", fwd_block.reads[i]->header);
-              fprintf (fd[3], "%s\n+\n%s\n", fwd_block.reads[i]->data,  fwd_block.reads[i]->qscore);
-              fprintf (fd[3], "%s\n", rev_block.reads[i]->header);
-              fprintf (fd[3], "%s\n+\n%s\n", rev_block.reads[i]->data, rev_block.reads[i]->qscore); /* printing the reverse compliment of the original sequence */
-            }
-           else   /* unassembled reads*/
-            {
-              fprintf (fd[1], "%s\n", fwd_block.reads[i]->header);
-              fprintf (fd[2], "%s\n", rev_block.reads[i]->header);
-              fprintf (fd[1], "%s\n+\n%s\n", fwd_block.reads[i]->data,  fwd_block.reads[i]->qscore);
-              fprintf (fd[2], "%s\n+\n%s\n", rev_block.reads[i]->data, rev_block.reads[i]->qscore); /* printing the reverse compliment of the original sequence */
-            }
+              fprintf (fd[3], "%s\n", fwd[i]->header);
+              fprintf (fd[3], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
+              fprintf (fd[3], "%s\n", rev[i]->header);
+              fprintf (fd[3], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
+         }
+        else   /* unassembled reads*/
+         {
+           *(fwd[i]->qscore - 1) = 0;
+              fprintf (fd[1], "%s\n", fwd[i]->header);
+              fprintf (fd[2], "%s\n", rev[i]->header);
+              fprintf (fd[1], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
+              fprintf (fd[2], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
+      
          }
       }
 

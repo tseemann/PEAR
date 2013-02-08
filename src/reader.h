@@ -35,8 +35,8 @@ struct block_t
    char * rawdata;
    char * rawdata_end;
    char * unread;
-   int rawdata_size;
-   int max_reads_count;
+   size_t rawdata_size;
+   unsigned int max_reads_count;
  };
 
 

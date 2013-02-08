@@ -313,8 +313,7 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
            }
           sw->memory *= x;
           if (!sw->memory) -- sw->memory;
-          printf ("Memory: %u\n", sw->memory);
-          abort();
+          printf ("Memory: %lu\n", sw->memory);
           break;
       }
    }
