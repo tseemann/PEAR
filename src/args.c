@@ -34,6 +34,7 @@ static struct option long_options[] =
    { "min-trim-length",   required_argument, NULL, 't' },
    { "max-uncalled-base", required_argument, NULL, 'u' }, 
    { "min-overlap",       required_argument, NULL, 'v' },
+   { "memory",            required_argument, NULL, 'y' },
    { NULL,                0,                 NULL, 0   }
  };
 
@@ -98,8 +99,11 @@ void usage (void)
                    "                                        2: Scaled score, use the probobality of bases been correct or wrong to scale \n"
                    "                                           the score in method 3 (both tests are invalid in use this method).\n"
                    "                                        3: +1 for a match, -1 for a mismatch, ignoring the quality scores.\n"
-                   "                                        (both tests are invalid if use this method 2 or 3)(default: 1)\n");				   		
+                   "                                        (both tests are invalid if use this method 2 or 3)(default: 1)\n"); 
   fprintf (stdout, "  -b, --phred-base            <int>     Base Phred quality score (default: 33)\n");
+  fprintf (stdout, "  -y, --memory                <str>     Specify the amount of memory to be used. The number may be followed with one of\n"
+                   "                                        the letters K, M, or G denoting Kilobytes, Megabytes and Gigabytes, respectively.\n"
+                   "                                        In case no letter is specified, bytes are assumed.\n");
   fprintf (stdout, "  -h, --help                            This help screen.\n\n");
 }
 
@@ -120,27 +124,30 @@ void usage (void)
 int decode_switches (int argc, char * argv[], struct user_args * sw)
 {
   int    opt;
-  int    oi;
-  char * ep;
+  int     oi;
+  char *  ep;
+  int      n;
+  int      x;
 
   /* initialization */
-  sw->fastq_left    = NULL;
-  sw->fastq_right   = NULL;
-  sw->outfile       = NULL;
-  sw->min_asm_len   = 50;
-  sw->max_asm_len   = 999999;
-  sw->qual_thres    = 0;
-  sw->phred_base    = 33;
-  sw->max_uncalled  = 1.0;
-  sw->min_overlap   = 10;
-  sw->emp_freqs     = 1;    /* use empirical base frequencies as default */
-  sw->p_value       = 0.01;
-  sw->geom_mean     = 0;
-  sw->min_trim_len  = 1;
-  sw->score_method  = 1;
-  sw->test          = 1;
+  sw->fastq_left    =      NULL;
+  sw->fastq_right   =      NULL;
+  sw->outfile       =      NULL;
+  sw->min_asm_len   =        50;
+  sw->max_asm_len   =    999999;
+  sw->qual_thres    =         0;
+  sw->phred_base    =        33;
+  sw->max_uncalled  =       1.0;
+  sw->min_overlap   =        10;
+  sw->emp_freqs     =         1;  /* use empirical base frequencies as default */
+  sw->p_value       =      0.01;
+  sw->geom_mean     =         0;
+  sw->min_trim_len  =         1;
+  sw->score_method  =         1;
+  sw->test          =         1;
+  sw->memory        = 200000000;
 
-  while ((opt = getopt_long(argc, argv, "b:ef:g:hm:n:o:p:q:r:s:t:u:v:", long_options, &oi)) != -1)
+  while ((opt = getopt_long(argc, argv, "b:ef:g:hm:n:o:p:q:r:s:t:u:v:y:", long_options, &oi)) != -1)
    {
      switch (opt)
       {
@@ -264,9 +271,50 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
           sw->min_overlap = (int) strtol (optarg, &ep, 10);
           if (ep == optarg || *ep != '\0' )
            {
-             printf ("Invalid min-overlap length.\n");
+             fprintf (stderr, "Invalid min-overlap length.\n");
              return (0);
            }
+          break;
+        case 'y':
+          n = strlen (optarg);
+          if (optarg[n - 1] != 'k' && optarg[n - 1] != 'K' &&
+              optarg[n - 1] != 'M' && optarg[n - 1] != 'm' &&
+              optarg[n - 1] != 'G' && optarg[n - 1] != 'g' &&
+              optarg[n - 1] < '0' && optarg[n - 1] > '9')
+           {
+             fprintf (stderr, "Invalid memory size specified\n");
+             return (0);
+           }
+          switch (optarg[n - 1])
+           {
+             case 'K':
+             case 'k':
+               x = 1024;
+               optarg[n - 1] = 0;
+               break;
+             case 'M':
+             case 'm':
+               x = 1048576;
+               optarg[n - 1] = 0;
+               break;
+             case 'G':
+             case 'g':
+               x = 1073741824;
+               optarg[n - 1] = 0;
+               break;
+             default:
+               x = 1;
+           }
+          sw->memory = (int) strtol (optarg, &ep, 10);
+          if (ep == optarg || *ep != '\0')
+           {
+             fprintf (stderr, "Invalid memory size specified\n");
+             return (0);
+           }
+          sw->memory *= x;
+          if (!sw->memory) -- sw->memory;
+          printf ("Memory: %u\n", sw->memory);
+          abort();
           break;
       }
    }

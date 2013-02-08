@@ -31,7 +31,8 @@ struct user_args
    double       geom_mean;    /**< @brief Geometric mean */
    int          test;         /**< @brief Test method */
    char       * outfile;      /**< @brief Output filename to use */
-   int          min_trim_len;  /**< @brief Minimum trim length */
+   int          min_trim_len; /**< @brief Minimum trim length */
+   size_t       memory;       /**< @brief Amount of memory to be used */
  };
 
 void usage (void);
