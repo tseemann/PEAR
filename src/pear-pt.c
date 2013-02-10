@@ -2,19 +2,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-#include "fastq.h"
 #include "args.h"
 #include "emp.h"
 #include "reader.h"
 
-/* possibly implement it such that we keep a number of strings for each diff_cnt */
-
-#define         ALPHA           1
-#define         BETA            2
-#define         MAX_READ_SIZE   300
+/** @file pear-pt.c
+    @brief Main file containing scoring and assembly related functions (pthreads version)
+*/
 #define         PHRED_INIT      33
-
-extern long double * precomp;
 
 //int stat_test (double, double, int, double);
 int stat_test2 (double, double, int, double);
@@ -27,39 +22,26 @@ double
 assemble_overlap_ef (struct reads_info * left, struct reads_info * right, int base_left, int base_right, int ol_size, struct asm_info * ai, struct emp_freq  * ef);
 */
 
-struct dp_matrix
- {
-   int          cnt_match;
-   int          cnt_error;
-   double       score;
- };
-
 /* TODO: Dynamically allocate them */
-double sc_eq[256][256];
-double sc_neq[256][256];
-
-double sc_eqA[256][256];
-double sc_eqC[256][256];
-double sc_eqG[256][256];
-double sc_eqT[256][256];
-
-double sc_neqAC[256][256];
-double sc_neqAG[256][256];
-double sc_neqAT[256][256];
-
-double sc_neqCA[256][256];
-double sc_neqCG[256][256];
-double sc_neqCT[256][256];
-
-double sc_neqGA[256][256];
-double sc_neqGC[256][256];
-double sc_neqGT[256][256];
-
-double sc_neqTA[256][256];
-double sc_neqTC[256][256];
-double sc_neqTG[256][256];
-
-double qs_mul[256][256];
+double      sc_eq[256][256];
+double     sc_neq[256][256];
+double     sc_eqA[256][256];
+double     sc_eqC[256][256];
+double     sc_eqG[256][256];
+double     sc_eqT[256][256];
+double   sc_neqAC[256][256];
+double   sc_neqAG[256][256];
+double   sc_neqAT[256][256];
+double   sc_neqCA[256][256];
+double   sc_neqCG[256][256];
+double   sc_neqCT[256][256];
+double   sc_neqGA[256][256];
+double   sc_neqGC[256][256];
+double   sc_neqGT[256][256];
+double   sc_neqTA[256][256];
+double   sc_neqTC[256][256];
+double   sc_neqTG[256][256];
+double     qs_mul[256][256];
 
 int match_score    = 1;
 int mismatch_score = 1;
@@ -1118,7 +1100,7 @@ main (int argc, char * argv[])
    }
   */
   
-  // 500 Mb
+
   init_fastq_reader_double_buffer (sw.fastq_left, sw.fastq_right, sw.memory, &fwd_block, &rev_block, &dbfwd_block, &dbrev_block);
   //init_fastq_reader (sw.fastq_left, sw.fastq_right, 100000000, &fwd_block, &rev_block);
 
@@ -1133,6 +1115,8 @@ main (int argc, char * argv[])
   fd[2] = fopen (out[2], "w");
   fd[3] = fopen (out[3], "w");
 
+  omp_set_num_threads (sw.threads);
+
 
   while (1)
    {
@@ -1146,19 +1130,21 @@ main (int argc, char * argv[])
         }
        if (flip == 1)
         {
+//          printf ("Flipping!\n");
           fwd = fwd_block.reads;
           rev = rev_block.reads;
           elms = tmp_elms;
         }
        else
         {
+//          printf ("Flipping!\n");
           fwd = dbfwd_block.reads;
           rev = dbrev_block.reads;
           elms = tmp_elms;
         }
 
      //#pragma omp parallel shared(fwd_block.reads, rev_block.reads, ai) private(i, ass, uncalled, kassian_result) 
-     #pragma omp parallel private(i, ass) 
+     #pragma omp parallel private(i, ass, uncalled_forward, uncalled_reverse) 
      {
        #pragma omp master
        {
@@ -1176,7 +1162,7 @@ main (int argc, char * argv[])
        }
        
        /* do the memory reading here */
-       #pragma omp for schedule (guided)
+       #pragma omp for schedule (runtime)
        for (i = 0; i < elms; ++ i)
         {
           mstrrev (rev[i]->data);
@@ -1187,6 +1173,18 @@ main (int argc, char * argv[])
            {
              ass = assembly (fwd[i], rev[i], match_score, mismatch_score, &sw);
              *(fwd[i]->qscore - 1) = ass;
+            if (!ass)
+              if (trim (fwd[i], sw.qual_thres, read_size, &uncalled_forward) < sw.min_trim_len ||
+                  trim_cpl (rev[i], sw.qual_thres, read_size, &uncalled_reverse) < sw.min_trim_len ||
+                  uncalled_forward >= sw.max_uncalled || uncalled_reverse >= sw.max_uncalled)
+               {
+                 *(fwd[i]->qscore - 1) = 2;
+               }
+              else
+               {
+                 *(fwd[i]->qscore - 1) = 3;
+               }
+              
            }
           else
           {
@@ -1226,26 +1224,24 @@ main (int argc, char * argv[])
               fprintf (fd[0], "%s\n", rev[i]->qscore);
             }
          }
-        else                                            /* not assembled */
+        else if (*(fwd[i]->qscore - 1) == 2)                                            /* not assembled */
          {
            *(fwd[i]->qscore - 1) = 0;
-           trim_len_fw  = trim (fwd[i], sw.qual_thres, read_size, &uncalled_forward);
-           trim_len_rev = trim_cpl (rev[i], sw.qual_thres, read_size, &uncalled_reverse);
-           if (trim_len_fw < sw.min_trim_len || trim_len_rev < sw.min_trim_len || uncalled_forward >= sw.max_uncalled || uncalled_reverse >= sw.max_uncalled)
-            { /* discarded reads*/
+              /* discarded reads*/
               /* Maybe consider printing the untrimmed sequences */
               fprintf (fd[3], "%s\n", fwd[i]->header);
               fprintf (fd[3], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
               fprintf (fd[3], "%s\n", rev[i]->header);
               fprintf (fd[3], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
-            }
-           else   /* unassembled reads*/
-            {
+         }
+        else   /* unassembled reads*/
+         {
+           *(fwd[i]->qscore - 1) = 0;
               fprintf (fd[1], "%s\n", fwd[i]->header);
               fprintf (fd[2], "%s\n", rev[i]->header);
               fprintf (fd[1], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
               fprintf (fd[2], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
-            }
+      
          }
       }
 
