@@ -1208,6 +1208,7 @@ main (int argc, char * argv[])
           {
              ass = assembly_ef (fwd[i], rev[i], match_score, mismatch_score, ef, &sw);
              *(fwd[i]->qscore - 1) = ass;
+             //TODO: Probably??
            }
         }
      }

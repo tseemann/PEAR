@@ -2,14 +2,25 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <pthread.h>
 #include "args.h"
 #include "emp.h"
 #include "reader.h"
+#include "async.h"
 
 /** @file pear-pt.c
     @brief Main file containing scoring and assembly related functions (pthreads version)
 */
-#define         PHRED_INIT      33
+#define         PHRED_INIT                       33
+#define         THREAD_MIN_PACKET_SIZE          100
+#define         THREAD_PACKET_SIZE_DELTA         20
+
+static pthread_mutex_t cs_mutex_wnd  = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t cs_mutex_io   = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t  cs_mutex_cond = PTHREAD_COND_INITIALIZER;
+
+struct thread_global_t thread_global;
+
 
 //int stat_test (double, double, int, double);
 int stat_test2 (double, double, int, double);
@@ -62,12 +73,15 @@ int mismatch_score = 1;
   *
   * @return
   *   Returns the length of the trimmed sequence
+  *
+  * @todo
+  *  Change the function (and also trim_cpl) so that it does not require the parameter \a len
   */
 int
 trim (struct read_t * read, int min_quality, int len, double * uncalled)
 {
   int                   i;
-
+  // TODO:  Change so that len is not required
   *uncalled = 0;
 
   for (i = 0; i < len - 1; ++ i)
@@ -1036,6 +1050,238 @@ makefilename (const char * prefix, const char * suffix)
   return (filename);
 }
 
+void write_data (struct block_t * fwd, struct block_t * rev, FILE ** fd)
+{
+  int elms;
+  int i;
+  char two_piece;
+  
+  elms = fwd->max_reads_count;
+  for ( i = 0; i < elms; ++ i)
+   {
+     two_piece = *(fwd[i]->data - 1);
+     *(fwd[i]->data - 1) = 0;
+
+     if (*(fwd[i]->qscore - 1) == 1)   /* assembled */
+      {
+        *(fwd[i]->qscore - 1) = 0;
+        fprintf (fd[0], "%s\n", fwd[i]->header);
+        if (!two_piece)
+         {
+           fprintf (fd[0], "%s\n", fwd[i]->data);
+         }
+        else
+         {
+           fprintf (fd[0], "%s",   fwd[i]->data);
+           fprintf (fd[0], "%s\n", rev[i]->data);
+         }
+        fprintf (fd[0], "+\n");
+
+        if (!two_piece)
+         {
+           fprintf (fd[0], "%s\n", fwd[i]->qscore);
+         }
+        else
+         {
+           fprintf (fd[0], "%s",   fwd[i]->qscore);
+           fprintf (fd[0], "%s\n", rev[i]->qscore);
+         }
+      }
+     else if (*(fwd[i]->qscore - 1) == 2)                                            /* not assembled */
+      {
+        *(fwd[i]->qscore - 1) = 0;
+           /* discarded reads*/
+           /* Maybe consider printing the untrimmed sequences */
+           fprintf (fd[3], "%s\n", fwd[i]->header);
+           fprintf (fd[3], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
+           fprintf (fd[3], "%s\n", rev[i]->header);
+           fprintf (fd[3], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
+      }
+     else   /* unassembled reads*/
+      {
+        *(fwd[i]->qscore - 1) = 0;
+           fprintf (fd[1], "%s\n", fwd[i]->header);
+           fprintf (fd[2], "%s\n", rev[i]->header);
+           fprintf (fd[1], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
+           fprintf (fd[2], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
+      }
+   }
+}
+
+void flip_list (void)
+{
+  struct blockinfo_t * elm1;
+  struct blockinfo_t * elm2;
+  int sleep = 0;
+  int elms;
+
+  elm1 = thread_globals.xblocks;
+  elm2 = thread_globals.yblocks;
+
+  thread_globals.blocks = elm2;
+  thread_globals.blocks->next = elm1;
+}
+
+void * entry_point (void * data)
+{
+  struct thread_local_t * thr_local;
+  int ass, i, sleep, elms;
+  double                uncalled_forward, uncalled_reverse;
+
+  /* initialization of values */
+  thr_local = (struct thread_args_t *)data;
+
+  
+  while (1)
+   {
+     // TODO: The first condition in the next line is useless?
+     if (thr_local->block == thread_globals.xblock && thread_globals.io_thread == thr_local->id)
+      {
+        pthread_mutex_lock (&cs_mutex_io);
+        write_data (thread_globals.xblock->fwd, thread_globals.xblock->rev, thread_globals.fd);
+        // TODO: read_data ();
+        elms = db_get_next_reads (thread_globals.xblock->fwd, 
+                                  thread_globals.xblock->rev, 
+                                  thread_globals.yblock->fwd, 
+                                  thread_globals.yblock->rev);
+          //read_size = strlen (fwd_block.reads[0]->data);
+        thread_globals.io_thread      = -1;
+        pthread_mutex_unlock (&cs_mutex_io);
+
+        pthread_mutex_lock (&cs_mutex_wnd);
+        threads_globals.xblock->reads     = elms;
+        threads_globals.xblock->processed = 0;
+        if (!elms) thread_globals.finish  = 1;
+        flip_list ();
+        pthread_mutex_unlock (&cs_mutex_wnd);
+
+        // wakeup threads
+        pthread_cond_broadcast (&cs_mutex_cond);
+      }
+
+     sleep = 1;
+
+     pthread_mutex_lock (&cs_mutex_wnd);
+     if (thread_globals.xblock->reads == thread_globals.xblock->processed)
+      {
+        if (thread_globals.finish)
+         {
+           pthread_mutex_unlock (&cs_mutex_wnd);
+           break;
+         }
+        /* is this the last thread using the current buffer? */
+        if (thread_globals.xblock->threads == 0 && thread_globals.io_thread != -1)
+         {
+           thread_globals.io_thread = thr_local->id;
+           sleep = 0;
+         }
+        else
+         {
+           if (assign_block_data (thread_global. yblock, thr_local)) sleep = 0;
+         }
+      }
+     else
+      {
+        if (assign_block_data (thread_global.xblock,thr_local)) sleep = 0;
+      }
+     if (sleep)
+      {
+        pthread_cond_wait (&cs_mutex_cond, &cs_mutex_wnd)
+      }
+     pthread_mutex_unlock (&cs_mutex_wnd);
+
+     if (!sleep && thread_globals.io_thread != thr_local->id)
+      {
+        // TODO: Process reads and make this an inline function
+        for (i = thr_local->start; i < thr_local->end; ++ i)
+         {
+           mstrrev (thr_local->block->rev[i]->data);    /* reverse the sequence */
+           mstrcpl (thr_local->block->rev[i]->data);    /* complement the sequence */
+           mstrrev (thr_local->block->rev[i]->qscore);  /* reverse the quality scores */
+
+           //TODO Switch for empirical frequencies
+           ass = assembly (thr_local->block->fwd[i], thr_local->block->rev[i], thr_local->match_score, thr_local->mismatch_score, thr_local->sw);
+           *(thr_local->block->fwd[i]->qscore - 1) = ass;
+           if (!ass)
+            {
+              if (trim     (thr_local->block->fwd[i], thr_local->sw.qual_thres, 
+                        strlen(thr_local->block->fwd[i]->data), &uncalled_forward) < sw.min_trim_len ||
+                  trim_cpl (thr_local->block->rev[i], thr_local->sw.qual_thres,
+                        strlen(thr_local->block->rev[i]->data), &uncalled_reverse) < sw.min_trim_len ||
+                  uncalled_forward >= sw.max_uncalled || uncalled_reverse >= sw.max_uncalled)
+               {
+                 *(fwd[i]->qscore - 1) = 2;
+               }
+              else
+               {
+                 *(fwd[i]->qscore - 1) = 3;
+               }
+            }
+         }
+
+        pthread_mutex_lock (&cs_mutex_wnd);
+          -- thr_local->block->threads;
+        pthread_mutex_unlock (&cs_mutex_wnd);
+      }
+   }
+  return (NULL);
+}
+
+inline int assign_reads (struct blockinfo_t * block, struct thread_local_t * thr_data)
+{
+  int r;
+
+  if (block->reads == block->processed) return (0);
+
+  r = THREAD_MIN_PACKET_SIZE + (rand() % THREAD_MIN_PACKET_SIZE);
+  thr_data->block   = block;
+  thr_data->start   = block->processed;
+
+  if (block->reads - block->processed <= r + THREAD_PACKET_SIZE_DELTA)
+   {
+     thr_data->end    = block->reads;
+     block->processed = block->reads;
+   }
+  else
+   {
+     thr_data->end    = thr_data->start + r;
+     block->processed = thr_data->start + r;
+   }
+  return (1);
+}
+
+void init_thread_globals (void)
+{
+  thread_global.xblock = (struct blockinfo_t *) malloc (sizeof(struct blockinfo_t *));
+  thread_global.yblock = (struct blockinfo_t *) malloc (sizeof(struct blockinfo_t *));
+  thread_global.xblock->fwd = (struct block_t *) malloc (sizeof(struct block_t));
+  thread_global.xblock->rev = (struct block_t *) malloc (sizeof(struct block_t));
+  thread_global.yblock->fwd = (struct block_t *) malloc (sizeof(struct block_t));
+  thread_global.yblock->rev = (struct block_t *) malloc (sizeof(struct block_t));
+
+  thread_global.xblock->empty     = 0;
+  thread_global.yblock->empty     = 0;
+  thread_global.xblock->reads     = 0;
+  thread_global.xblock->processed = 0;
+  thread_global.xblock->threads   = 0;
+  thread_global.yblock->reads     = 0;
+  thread_global.yblock->processed = 0;
+  thread_global.yblock->threads   = 0;
+
+  thread_global.io_thread = -1;
+  thread_global.finish = 0;
+}
+
+void destroy_thread_globals (void)
+{
+  free (thr_global.xblock->fwd);
+  free (thr_global.xblock->rev);
+  free (thr_global.yblock->fwd);
+  free (thr_global.yblock->rev);
+  free (thr_global.xblock);
+  free (thr_global.yblock);
+}
+
 int 
 main (int argc, char * argv[])
 {
@@ -1062,7 +1308,10 @@ main (int argc, char * argv[])
   struct read_t ** rev;
   int tmp_elms = 0;
   int end = 0;
+  struct thread_local_t * thr_data;
+  pthread_t * tid;
 
+  /* parse command-line arguments */
   if (!decode_switches (argc, argv, &sw))
    {
      /* TODO: Validate reads names */
@@ -1100,8 +1349,18 @@ main (int argc, char * argv[])
    }
   */
   
+  init_thread_globals ();
+  thr_data = (struct thread_local_t *) calloc (sw.threads, sizeof (thread_local_t));
+  tid      = (pthread_t *) malloc (sw.threads * sizeof (pthread_t));
 
-  init_fastq_reader_double_buffer (sw.fastq_left, sw.fastq_right, sw.memory, &fwd_block, &rev_block, &dbfwd_block, &dbrev_block);
+  //init_fastq_reader_double_buffer (sw.fastq_left, sw.fastq_right, sw.memory, &fwd_block, &rev_block, &dbfwd_block, &dbrev_block);
+  init_fastq_reader_double_buffer (sw.fastq_left, 
+                                   sw.fastq_right, 
+                                   sw.memory, 
+                                   thread_globals.xblock->fwd, 
+                                   thread_globals.xblock->rev, 
+                                   thread_globals.yblock->fwd, 
+                                   thread_globals.yblock->rev);
   //init_fastq_reader (sw.fastq_left, sw.fastq_right, 100000000, &fwd_block, &rev_block);
 
   /* construct output file names */
@@ -1110,12 +1369,26 @@ main (int argc, char * argv[])
   out[2] = makefilename (sw.outfile, ".unassembled.reverse.fastq");
   out[3] = makefilename (sw.outfile, ".discarded.fastq");
 
-  fd[0] = fopen (out[0], "w");
-  fd[1] = fopen (out[1], "w");
-  fd[2] = fopen (out[2], "w");
-  fd[3] = fopen (out[3], "w");
+  thread_globals.fd[0] = fopen (out[0], "w");
+  thread_globals.fd[1] = fopen (out[1], "w");
+  thread_globals.fd[2] = fopen (out[2], "w");
+  thread_globals.fd[3] = fopen (out[3], "w");
 
-  omp_set_num_threads (sw.threads);
+  //omp_set_num_threads (sw.threads);
+  
+  // Read block
+  //db_get_next_reads (&fwd_block, &rev_block, &dbfwd_block, &dbrev_block);
+  db_get_next_reads (&fwd_block, &rev_block, &dbfwd_block, &dbrev_block);
+
+
+
+  /* pthreads entry point */
+  for (i = 0; i < sw.threads; ++ i)
+   {
+     thr_data[i].block  = thread_globals.xblock;
+     thr_data[i].id     = i;
+     pthread_create (&tid[i], NULL, entry_point, (void *)&thr_data[i]); 
+   }
 
 
   while (1)
@@ -1261,6 +1534,8 @@ main (int argc, char * argv[])
   fclose (fd[1]);
   fclose (fd[2]);
   fclose (fd[3]);
+   
+  destroy_thread_globals ()
   
-  return (0);
+  return (EXIT_SUCCESS);
 }
