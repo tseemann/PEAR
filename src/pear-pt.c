@@ -1285,7 +1285,6 @@ main (int argc, char * argv[])
 //  int                   cnt_reads_left;
 //  int                   cnt_reads_right;
   char                * out[4];
-  FILE                * fd[4];
   struct user_args      sw;
   struct emp_freq * ef;
   struct thread_local_t * thr_data;
@@ -1379,10 +1378,10 @@ main (int argc, char * argv[])
   destroy_reader ();
 
   /* TODO: Fix those file closings */
-  fclose (fd[0]);
-  fclose (fd[1]);
-  fclose (fd[2]);
-  fclose (fd[3]);
+  fclose (thr_global.fd[0]);
+  fclose (thr_global.fd[1]);
+  fclose (thr_global.fd[2]);
+  fclose (thr_global.fd[3]);
    
   destroy_thr_global ();
   
