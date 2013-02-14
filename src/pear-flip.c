@@ -1133,6 +1133,8 @@ main (int argc, char * argv[])
   fd[2] = fopen (out[2], "w");
   fd[3] = fopen (out[3], "w");
 
+  omp_set_num_threads (sw.threads);
+
 
   while (1)
    {
@@ -1146,14 +1148,14 @@ main (int argc, char * argv[])
         }
        if (flip == 1)
         {
-          printf ("Flipping!\n");
+//          printf ("Flipping!\n");
           fwd = fwd_block.reads;
           rev = rev_block.reads;
           elms = tmp_elms;
         }
        else
         {
-          printf ("Flipping!\n");
+//          printf ("Flipping!\n");
           fwd = dbfwd_block.reads;
           rev = dbrev_block.reads;
           elms = tmp_elms;

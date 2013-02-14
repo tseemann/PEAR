@@ -33,6 +33,7 @@ struct user_args
    char       * outfile;      /**< @brief Output filename to use */
    int          min_trim_len; /**< @brief Minimum trim length */
    size_t       memory;       /**< @brief Amount of memory to be used */
+   int          threads;      /**< @brief Number of threads to use */
  };
 
 void usage (void);

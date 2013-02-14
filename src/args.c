@@ -24,6 +24,7 @@ static struct option long_options[] =
    { "left-fastq",        required_argument, NULL, 'f' },
    { "geometric-mean",    required_argument, NULL, 'g' },
    { "help",              no_argument,       NULL, 'h' },
+   { "threads",           required_argument, NULL, 'j' },
    { "max-asm-length",    required_argument, NULL, 'm' },
    { "min-asm-length",    required_argument, NULL, 'n' },
    { "output",            required_argument, NULL, 'o' },
@@ -104,6 +105,7 @@ void usage (void)
   fprintf (stdout, "  -y, --memory                <str>     Specify the amount of memory to be used. The number may be followed with one of\n"
                    "                                        the letters K, M, or G denoting Kilobytes, Megabytes and Gigabytes, respectively.\n"
                    "                                        In case no letter is specified, bytes are assumed.\n");
+  fprintf (stdout, "  -j, --threads               <int>     Number of threads to use\n");
   fprintf (stdout, "  -h, --help                            This help screen.\n\n");
 }
 
@@ -147,7 +149,7 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
   sw->test          =         1;
   sw->memory        = 200000000;
 
-  while ((opt = getopt_long(argc, argv, "b:ef:g:hm:n:o:p:q:r:s:t:u:v:y:", long_options, &oi)) != -1)
+  while ((opt = getopt_long(argc, argv, "b:ef:g:hj:m:n:o:p:q:r:s:t:u:v:y:", long_options, &oi)) != -1)
    {
      switch (opt)
       {
@@ -183,6 +185,14 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
         case 'h':
           return (0);
 
+        case 'j':
+          sw->threads = (int)strtol (optarg, &ep, 10);
+          if (ep == optarg || *ep != '\0' || !sw->threads)
+           {
+             printf ("Invalid number of threads.\n");
+             return (0);
+           }
+          break;
         case 'm':
           sw->max_asm_len = (int)strtol (optarg, &ep, 10);
           if (ep == optarg || *ep != '\0' )
