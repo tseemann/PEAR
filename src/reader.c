@@ -147,7 +147,7 @@ struct block_t * sec_fwd, struct block_t * sec_rev)
      fprintf (stderr, "Failed to allocate memory...\n");
      abort ();
    }
-  printf ("Allocating %ld bytes\n", memsize);
+  printf ("Allocating %u bytes\n", memsize);
 
 
   /* reserve area from mempool for the forwards reads */

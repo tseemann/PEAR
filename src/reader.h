@@ -15,9 +15,9 @@
 */
 struct read_t
  {
-   char * header;
-   char * data;
-   char * qscore;
+   char * header;  /**< @brief Read header */
+   char * data;    /**< @brief Read sequence */
+   char * qscore;  /**< @brief Quality scores of sequence */
  };
 
 /** @brief A block representing a memory window of the read files
@@ -31,12 +31,12 @@ struct read_t
 */
 struct block_t
  {
-   struct read_t ** reads;
-   char * rawdata;
-   char * rawdata_end;
-   char * unread;
-   size_t rawdata_size;
-   unsigned int max_reads_count;
+   struct read_t ** reads;        /**< @brief Array of read_t structures */
+   char * rawdata;                /**< @brief Raw data read from file */
+   char * rawdata_end;            /**< @brief Pointer to the memory location after the last read byte */
+   char * unread;                 /**< @brief Pointer to rawdata, at the start of the incomplete read */
+   size_t rawdata_size;           /**< @brief Number of bytes read from file */
+   unsigned int max_reads_count;  /**< @brief Number of complete reads parsed from rawdata */
  };
 
 

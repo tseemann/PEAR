@@ -12,8 +12,7 @@ struct blockinfo_t
    unsigned int processed;
    unsigned int threads;
    struct list_t * next;
-
- }
+ };
 
 struct thread_global_t
  {
@@ -33,7 +32,7 @@ struct thread_local_t
    struct user_args * sw;
 
 
-   thread_t id;
+   int id;
 
    unsigned int start;
    unsigned int end;
