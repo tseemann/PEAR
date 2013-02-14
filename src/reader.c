@@ -511,7 +511,7 @@ int get_next_reads (struct block_t * fwd_block, struct block_t * rev_block)
   n1 = parse_block (fwd_block);
   n2 = parse_block (rev_block);
 
-  printf ("Read %d and %d reads\n", n1, n2);
+//  printf ("Read %d and %d reads\n", n1, n2);
   
   /* align reads if different count selected */
   if (n1 != n2)
@@ -547,7 +547,7 @@ int db_get_next_reads (struct block_t * fwd_block, struct block_t * rev_block, s
   n1 = parse_block (fwd_block);
   n2 = parse_block (rev_block);
   
-  printf ("Read %d and %d reads\n", n1, n2);
+//  printf ("Read %d and %d reads\n", n1, n2);
   /* align reads if different count selected */
   if (n1 != n2)
    {
