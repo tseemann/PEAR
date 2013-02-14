@@ -1248,8 +1248,8 @@ void * entry_point (void * data)
 
 void init_thr_global (void)
 {
-  thr_global.xblock = (struct blockinfo_t *) malloc (sizeof(struct blockinfo_t *));
-  thr_global.yblock = (struct blockinfo_t *) malloc (sizeof(struct blockinfo_t *));
+  thr_global.xblock = (struct blockinfo_t *) malloc (sizeof(struct blockinfo_t));
+  thr_global.yblock = (struct blockinfo_t *) malloc (sizeof(struct blockinfo_t));
   thr_global.xblock->fwd = (struct block_t *) malloc (sizeof(struct block_t));
   thr_global.xblock->rev = (struct block_t *) malloc (sizeof(struct block_t));
   thr_global.yblock->fwd = (struct block_t *) malloc (sizeof(struct block_t));
