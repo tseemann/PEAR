@@ -147,7 +147,12 @@ struct block_t * sec_fwd, struct block_t * sec_rev)
      fprintf (stderr, "Failed to allocate memory...\n");
      abort ();
    }
+  #if defined(__LP64__) || defined(_LP64)
+  printf ("Allocating %lu bytes\n", memsize);
+  #else
   printf ("Allocating %u bytes\n", memsize);
+  #endif
+
 
 
   /* reserve area from mempool for the forwards reads */

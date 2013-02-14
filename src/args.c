@@ -323,7 +323,11 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
            }
           sw->memory *= x;
           if (!sw->memory) -- sw->memory;
+          #if defined(__LP64__) || defined(_LP64)
+          printf ("Memory: %lu\n", sw->memory);
+          #else
           printf ("Memory: %u\n", sw->memory);
+          #endif
           break;
       }
    }
