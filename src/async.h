@@ -11,7 +11,6 @@ struct blockinfo_t
    unsigned int reads;
    unsigned int processed;
    unsigned int threads;
-   struct list_t * next;
  };
 
 struct thread_global_t
