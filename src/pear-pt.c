@@ -69,66 +69,120 @@ int mismatch_score = 1;
   * @param min_quality
   *   Minimum quality score threshold
   *
-  * @param len
-  *   Length of the forward sequence
+  * @param uncalled
+  *   Variable to store the ratio of uncalled bases
   *
   * @return
   *   Returns the length of the trimmed sequence
-  *
-  * @todo
-  *  Change the function (and also trim_cpl) so that it does not require the parameter \a len
   */
 int
-trim (struct read_t * read, int min_quality, int len, double * uncalled)
+trim (struct read_t * read, int min_quality, double * uncalled)
 {
   int                   i;
-  // TODO:  Change so that len is not required
+  char                * qscore;
+  char                * data;
+
+  qscore = read->qscore + 1;
+  data   = read->data   + 1;
   *uncalled = 0;
 
-  for (i = 0; i < len - 1; ++ i)
+  i = 1;
+  if (!*data)
    {
-     if (read->data[i] == 'N' || read->data[i] == 'n') ++ (*uncalled);
-     if ( read->qscore[i] - PHRED_INIT < min_quality && read->qscore[i + 1] - PHRED_INIT < min_quality)
-      {
-        read->qscore[i + 1] = 0;
-        read->data[i + 1] = 0;
-        *uncalled = (*uncalled) / (i + 1);
-        return i + 1;
-      }
+     if (*(data - 1) == 'N' || *(data - 1) == 'n') ++ *uncalled;
+     return (i);
    }
 
-  if (read->data[len - 1] ==  'N' || read->data[len - 1] == 'n') ++ (*uncalled);
+  while (*data)
+   {
+     if (*(data - 1) == 'N' || *(data - 1) == 'n') ++ (*uncalled);
+     if (*(data - 1) - PHRED_INIT < min_quality && *data - PHRED_INIT < min_quality)
+      {
+        *data   = 0;
+        *qscore = 0;
+        *uncalled = (*uncalled) / (i);
+        return (i);
+      }
+     ++ i;
+     ++ data;
+   }
+  if (*(data - 1) == 'N' || *(data - 1) == 'n') ++ (*uncalled);
+  *uncalled = (*uncalled) / i;
+  return (i);
+}
+
+/** @brief Trimming of reverse part (reversed + complemented) of unassembled sequence
+  *
+  * Finds two adjacent quality scores that are smaller than the minimum quality score threshold \a min_quality.
+  * It then \e trims the part starting from the rightmost quality score position.
+  *
+  * @param read
+  *   Forward sequence
+  *
+  * @param min_quality
+  *   Minimum quality score threshold
+  *
+  * @param uncalled
+  *   Variable to store the ratio of uncalled bases
+  *
+  * @return
+  *   Returns the length of the trimmed sequence
+  */
+int
+trim_cpl (struct read_t * read, int min_quality, double * uncalled)
+{
+  int                   i;
+  char                * qscore;
+  char                * data;
+  int                   len;
+
+  qscore = read->qscore;
+  data   = read->data;
+  *uncalled = 0;
+  len = 0;
+
+  while (*data)
+   {
+     ++len;
+     ++data;
+   }
+
+  data = read->data;
+  for (i = len - 1; i > 0; -- i)
+   {
+     if (data[i] == 'N' || data[i] == 'n') ++ *uncalled;
+     if (qscore[i] - PHRED_INIT < min_quality && qscore[i - 1] - PHRED_INIT < min_quality)
+      {
+        qscore[i - 1] = 0;
+        data[i - 1]   = 0;
+        memmove (data,   data + i,   len - i + 1);
+        memmove (qscore, qscore + i, len - i + 1);
+        *uncalled = (*uncalled) / (len - i);
+        return (len - i);
+      }
+   }
+  if (*data == 'N' || *data == 'n') ++ *uncalled;
   *uncalled = (*uncalled) / len;
   return (len);
 }
 
-int
-trim_cpl (struct read_t * read, int min_quality, int len, double * uncalled)
-{
-  int                   i, j;
+/** @brief Initialize table of precomputed scores
+    
+    This function computes a table of scores for every possible combination of
+    basepair and quality scores. The element \a sc_eqX[i][j] is the score
+    for a basepair \a X with quality scores \a i and \j in the two sequences.
+    The element \a sc_neqXY[i][j] is the score of basepairs \a X and \a Y with
+    quality scores \a i and \j, respectively.
 
-  *uncalled = 0;
+    @param match
+      The match weight to be used in scoring
 
-  for (i = len - 1; i > 0; -- i)
-   {
-     if (read->qscore[i] - PHRED_INIT < min_quality && read->qscore[i - 1] - PHRED_INIT < min_quality)
-      {
-        read->qscore[i - 1] = 0;
-        read->data[i - 1] = 0;
-        memmove (read->data, read->data + i, strlen (read->data + i) + 1);
-        memmove (read->qscore, read->qscore + i, strlen (read->qscore + i) + 1);
-        for (j = 0; read->data[j]; ++ j)
-          if (read->data[j] == 'N' || read->data[j] == 'n') ++ (*uncalled);
-        *uncalled = (*uncalled) / j;
-        return (len - i);
-      }
-   }
-  for (j = 0; read->data[j]; ++ j)
-    if (read->data[j] == 'N' || read->data[j] == 'n') ++ (*uncalled);
-  *uncalled = (*uncalled) / j;
-  return (len);
-}
+    @param mismatch
+      The mismatch weight to be used in scoring
 
+    @param ef
+      Structure containing empirical frequencies
+*/
 void init_scores (int match, int mismatch, struct emp_freq * ef)
 {
   int           i, j;
@@ -267,10 +321,10 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
                     *score = *score - (sc_neqAC[(int)qleft][(int)qright] - (1 - sc_neqAC[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'G':
-					*score = *score - (sc_neqAG[(int)qleft][(int)qright] - (1 - sc_neqAG[(int)qleft][(int)qright] / mismatch) * match);
+                    *score = *score - (sc_neqAG[(int)qleft][(int)qright] - (1 - sc_neqAG[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'T':
-					*score = *score - (sc_neqAT[(int)qleft][(int)qright] - (1 - sc_neqAT[(int)qleft][(int)qright] / mismatch) * match);
+                    *score = *score - (sc_neqAT[(int)qleft][(int)qright] - (1 - sc_neqAT[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                 }
                break;
@@ -278,13 +332,13 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
                switch (dright)
                 {
                   case 'A':
-					*score = *score - (sc_neqCA[(int)qleft][(int)qright] - (1 - sc_neqCA[(int)qleft][(int)qright] / mismatch) * match);
+                    *score = *score - (sc_neqCA[(int)qleft][(int)qright] - (1 - sc_neqCA[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'G':
-					*score = *score - (sc_neqCG[(int)qleft][(int)qright] - (1 - sc_neqCG[(int)qleft][(int)qright] / mismatch) * match);
+                    *score = *score - (sc_neqCG[(int)qleft][(int)qright] - (1 - sc_neqCG[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'T':
-					*score = *score - (sc_neqCT[(int)qleft][(int)qright] - (1 - sc_neqCT[(int)qleft][(int)qright] / mismatch) * match);
+                    *score = *score - (sc_neqCT[(int)qleft][(int)qright] - (1 - sc_neqCT[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                 }
                break;
@@ -298,7 +352,7 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
                     *score = *score - (sc_neqGC[(int)qleft][(int)qright] - (1 - sc_neqGC[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'T':
-					*score = *score - (sc_neqGT[(int)qleft][(int)qright] - (1 - sc_neqGT[(int)qleft][(int)qright] / mismatch) * match);
+                    *score = *score - (sc_neqGT[(int)qleft][(int)qright] - (1 - sc_neqGT[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                 }
                break;
@@ -306,13 +360,13 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
                switch (dright)
                 {
                   case 'A':
-					*score = *score - (sc_neqTA[(int)qleft][(int)qright] - (1 - sc_neqTA[(int)qleft][(int)qright] / mismatch) * match);
+                    *score = *score - (sc_neqTA[(int)qleft][(int)qright] - (1 - sc_neqTA[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'C':
-					*score = *score - (sc_neqTC[(int)qleft][(int)qright] - (1 - sc_neqTC[(int)qleft][(int)qright] / mismatch) * match);
+                    *score = *score - (sc_neqTC[(int)qleft][(int)qright] - (1 - sc_neqTC[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'G':
-					*score = *score - (sc_neqTG[(int)qleft][(int)qright] - (1 - sc_neqTG[(int)qleft][(int)qright] / mismatch) * match);
+                    *score = *score - (sc_neqTG[(int)qleft][(int)qright] - (1 - sc_neqTG[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                 }
                break;
@@ -1178,6 +1232,7 @@ void * entry_point (void * data)
 
            #ifdef PRINT_DEBUG
            pthread_mutex_lock (&cs_mutex_out);
+           printf ("READ %d elms\n", elms);
            printf ("WAKE_UP_ALL!    (reads: %d processed: %d)\n", thr_global.xblock->reads, thr_global.xblock->processed);
            pthread_mutex_unlock (&cs_mutex_out);
            #endif
@@ -1225,12 +1280,13 @@ void * entry_point (void * data)
       }
      else
       {
-           #ifdef PRINT_DEBUG
-           pthread_mutex_lock (&cs_mutex_out);
-           printf ("ASSIGNED x READS to %d\n", thr_local->id);
-           pthread_mutex_unlock (&cs_mutex_out);
-           #endif
         if (assign_reads (thr_global.xblock,thr_local)) sleep = 0;
+           #ifdef PRINT_DEBUG
+           if (!sleep) {
+           pthread_mutex_lock (&cs_mutex_out);
+           printf ("ASSIGNED x READS to %d  (%d - %d)   Threads: %d\n", thr_local->id, thr_local->start, thr_local->end, thr_global.xblock->threads);
+           pthread_mutex_unlock (&cs_mutex_out);}
+           #endif
       }
      if (sleep)
       {
@@ -1240,6 +1296,11 @@ void * entry_point (void * data)
            pthread_mutex_unlock (&cs_mutex_out);
            #endif
         pthread_cond_wait (&cs_mutex_cond, &cs_mutex_wnd);
+           #ifdef PRINT_DEBUG
+           pthread_mutex_lock (&cs_mutex_out);
+           printf ("WAKING %d\n", thr_local->id);
+           pthread_mutex_unlock (&cs_mutex_out);
+           #endif
       }
      pthread_mutex_unlock (&cs_mutex_wnd);
 
@@ -1258,9 +1319,9 @@ void * entry_point (void * data)
            if (!ass)
             {
               if (trim     (thr_local->block->fwd->reads[i], thr_local->sw->qual_thres, 
-                        strlen(thr_local->block->fwd->reads[i]->data), &uncalled_forward) < thr_local->sw->min_trim_len ||
+                        &uncalled_forward) < thr_local->sw->min_trim_len ||
                   trim_cpl (thr_local->block->rev->reads[i], thr_local->sw->qual_thres,
-                        strlen(thr_local->block->rev->reads[i]->data), &uncalled_reverse) < thr_local->sw->min_trim_len ||
+                        &uncalled_reverse) < thr_local->sw->min_trim_len ||
                   uncalled_forward >= thr_local->sw->max_uncalled || uncalled_reverse >= thr_local->sw->max_uncalled)
                {
                  *(thr_local->block->fwd->reads[i]->qscore - 1) = 2;
@@ -1405,6 +1466,8 @@ main (int argc, char * argv[])
 
   thr_global.yblock->reads     = elms;
   thr_global.yblock->processed = 0;
+
+  printf ("ELMS: %d\n", elms);
 
   /* pthreads entry point */
   for (i = 0; i < sw.threads; ++ i)
