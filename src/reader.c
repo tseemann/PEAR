@@ -62,6 +62,11 @@ void comp_mem (size_t memsize, size_t * reads_count, size_t * rawdata_size)
   *rawdata_size = u * y;
 }
 
+void rewind_files (void)
+{
+  rewind (fp1);
+  rewind (fp2);
+}
 
 void init_fastq_reader_double_buffer (const char * file1, const char * file2, size_t memsize, struct block_t * pri_fwd, struct block_t * pri_rev, 
 struct block_t * sec_fwd, struct block_t * sec_rev)
@@ -208,8 +213,8 @@ struct block_t * sec_fwd, struct block_t * sec_rev)
   #ifdef PRINT_MEM
   printf ("\n");
   #endif
-
 }
+
 
 void 
 init_fastq_reader (const char * file1, const char * file2, size_t memsize, struct block_t * fwd, struct block_t * rev)

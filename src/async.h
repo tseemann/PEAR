@@ -3,6 +3,7 @@
 
 #include "args.h"
 #include "reader.h"
+#include "emp.h"
 
 struct blockinfo_t
  {
@@ -37,6 +38,7 @@ struct thread_local_t
    unsigned int end;
    int match_score;
    int mismatch_score;
+   struct emp_freq * ef;
  };
 
 #endif

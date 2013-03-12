@@ -4,6 +4,54 @@
 #include "fastq.h"
 
 struct emp_freq *
+async_block_freq (int start, int end, struct read_t ** fwd, struct read_t ** rev)
+{
+  int i;
+  char * reads[2];
+  char * data;
+
+  start = thr_data.start;
+  end   = thr_data.end;
+
+  reads[0] = fwd;
+  reads[1] = rev;
+
+  for (i = 0; i < 2; ++ i)
+   {
+     for (j = start; j < end; ++ j)
+      {
+        data = reads[i][j];
+        while (*data)
+         {
+           switch (*data)
+            {
+              case 'A':
+              case 'a':
+                ++ ef->freqa;
+                break;
+
+              case 'C':
+              case 'c':
+                ++ ef->freqc;
+                break;
+
+              case 'G':
+              case 'g':
+                ++ ef->freqg;
+                break;
+
+              case 'T':
+              case 't':
+                ++ ef->freqt;
+                break;
+            }
+           ++ data;
+         }
+      }
+   }
+}
+
+struct emp_freq *
 get_emp_freq (int nReads, int Len, struct reads_info ** ri_left, struct reads_info ** ri_right)
 {
   struct emp_freq * ef;
