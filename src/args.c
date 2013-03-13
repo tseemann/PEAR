@@ -148,6 +148,7 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
   sw->score_method  =         1;
   sw->test          =         1;
   sw->memory        = 200000000;
+  sw->threads       =         1;
 
   while ((opt = getopt_long(argc, argv, "b:ef:g:hj:m:n:o:p:q:r:s:t:u:v:y:", long_options, &oi)) != -1)
    {

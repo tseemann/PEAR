@@ -74,9 +74,11 @@ def find_accuracy(fn_truth, fn_assemby, name, method = "panda", printnice = True
 
 def test_pear(forward, reverse, output, pvalue, minoverlap, maxlen, minlen, mintrimlen, minquality, maxuncalled, scoremethod, empirical_freqs, truelenfile, testname, testw):
 	if empirical_freqs == "yes":
-		call(["../src/pear","-f",forward,"-r",reverse,"-o", output,"-p", pvalue, "-v", minoverlap, "-m", maxlen, "-n", minlen, "-t", mintrimlen, "-q", minquality, "-u", maxuncalled, "-s", scoremethod, "-g", testw, "-e"])
+                print "../src/pear" + " " + "-f" + " " + forward + " " + "-r" + " " + reverse + " " + "-o" + " " + output + " " + "-p" + " " + pvalue + " " + "-v" + " " + minoverlap + " " + "-m" + " " + maxlen + " " + "-n" + " " + minlen + " " + "-t" + " " + mintrimlen + " " + "-q" + " " + minquality + " " +  "-u" + " " + maxuncalled + " " + "-s" + " " + scoremethod + " " + "-j" + " " + "48" + " " + "-g" + " " + testw + " " + "-y" + " " + "200000000"
+		call(["../src/pear","-f",forward,"-r",reverse,"-o", output,"-p", pvalue, "-v", minoverlap, "-m", maxlen, "-n", minlen, "-t", mintrimlen, "-q", minquality, "-u", maxuncalled, "-s", scoremethod, "-j", "48", "-g", testw, "-y", "200000000" ])
 	else:
-		call(["../src/pear","-f",forward,"-r",reverse,"-o", output,"-p", pvalue, "-v", minoverlap, "-m", maxlen, "-n", minlen, "-t", mintrimlen, "-q", minquality, "-u", maxuncalled, "-s", scoremethod, "-g", testw, "-e"])
+                print "../src/pear" + "-f" + forward + "-r" + reverse + "-o" + output + "-p" + pvalue + "-v" + minoverlap + "-m" + maxlen + "-n" + minlen + "-t" + mintrimlen + "-q", minquality +  "-u", maxuncalled + "-s" + scoremethod + "-j" + "48" + "-g" + testw + "-y" + "200000000 -e"
+		call(["../src/pear","-f",forward,"-r",reverse,"-o", output,"-p", pvalue, "-v", minoverlap, "-m", maxlen, "-n", minlen, "-t", mintrimlen, "-q", minquality, "-u", maxuncalled, "-s", scoremethod, "-j", "48", "-g", testw, "-y", "200000000", "-e"])
 	return find_accuracy(fn_truth = truelenfile, fn_assemby = output+".assembled.fastq", name = testname, method = "pear", printnice = False)
 
 def publication_data():

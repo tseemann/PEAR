@@ -505,7 +505,7 @@ assembly_ef (struct read_t * left, struct read_t * right, int match_score, int m
   int                   nMatch;
   int                   asm_len = 0;
   int                   st_pass;
-  int                   uncalled = 0;
+  double                uncalled = 0;
   
   n = strlen (left->data);
      
@@ -674,7 +674,7 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
   int                   nMatch;
   int                   asm_len = 0;
   int                   st_pass;
-  int                   uncalled = 0;
+  double                uncalled = 0;
   
   n = strlen (left->data);
      
@@ -1774,17 +1774,18 @@ main (int argc, char * argv[])
                                    thr_global.yblock->fwd, 
                                    thr_global.yblock->rev);
 
-  elms = db_get_next_reads (thr_global.yblock->fwd, 
-                            thr_global.yblock->rev,
-                            thr_global.xblock->fwd,
-                            thr_global.xblock->rev);
-
-  thr_global.yblock->reads     = elms;
-  thr_global.yblock->processed = 0;
-
   ef = (struct emp_freq *)malloc (sizeof(struct emp_freq));
   if (sw.emp_freqs)
    {
+     
+     elms = db_get_next_reads (thr_global.yblock->fwd, 
+                               thr_global.yblock->rev,
+                               thr_global.xblock->fwd,
+                               thr_global.xblock->rev);
+
+     thr_global.yblock->reads     = elms;
+     thr_global.yblock->processed = 0;
+
      for (i = 0; i < sw.threads; ++ i)
       {
         thr_data[i].block          = thr_global.xblock;
@@ -1805,16 +1806,8 @@ main (int argc, char * argv[])
      ef->freqa = a; ef->freqc = c; ef->freqg = g; ef->freqt = t;
      ef->total = a + c + g + t;
      ef->pa = ef->freqa / ef->total; ef->pc = ef->freqc / ef->total; ef->pg = ef->freqg / ef->total; ef->pt = ef->freqt / ef->total;
+     ef->q  = ef->pa * ef->pa + ef->pc * ef->pc + ef->pg * ef->pg + ef->pt * ef->pt;
      printf ("a: %f c: %f g: %f t: %f\n", ef->pa, ef->pc, ef->pg, ef->pt);
-   }
-  else
-   {
-     ef->freqa = ef->freqc = ef->freqg = ef->freqt = ef->total = ef->pa = ef->pc = ef->pg = ef->pt = ef->q = 0.25;
-   }
-  
-  printf ("A: %d\nC: %d\nG: %d\nT: %d\n", ef->freqa, ef->freqc, ef->freqg, ef->freqt);
-//  exit (1);
-
   rewind_files ();
   thr_global.xblock->fwd->unread = thr_global.xblock->rev->unread = NULL;
   thr_global.yblock->fwd->unread = thr_global.yblock->rev->unread = NULL;
@@ -1831,6 +1824,16 @@ main (int argc, char * argv[])
   thr_global.io_thread = -1;
   thr_global.finish = 0;
 
+   }
+  else
+   {
+     ef->freqa = ef->freqc = ef->freqg = ef->freqt = ef->total = ef->pa = ef->pc = ef->pg = ef->pt = ef->q = 0.25;
+//     printf ("Set emp freqs to 0.25\n");
+   }
+  
+//  printf ("!!!! A: %d\nC: %d\nG: %d\nT: %d\n", ef->freqa, ef->freqc, ef->freqg, ef->freqt);
+//  exit (1);
+
   init_scores(match_score, mismatch_score, ef);
 
   elms = db_get_next_reads (thr_global.yblock->fwd, 
@@ -1840,8 +1843,6 @@ main (int argc, char * argv[])
 
   thr_global.yblock->reads     = elms;
   thr_global.yblock->processed = 0;
-
-  printf ("ELMS: %d\n", elms);
 
   /* pthreads entry point */
   for (i = 0; i < sw.threads; ++ i)
