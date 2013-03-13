@@ -248,20 +248,26 @@ void init_scores (int match, int mismatch, struct emp_freq * ef)
 }
 
 inline void
-scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, double * score, int match, int mismatch, struct emp_freq * ef)
+scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, double * score, double * oes, int match, int mismatch, struct emp_freq * ef)
 {
+  double tmp;
+
   if (dleft == 'N' || dright == 'N')       /* one of them is N */
    {
      switch (score_method)
       {
         case 1:
           *score += (ef->q * match - (1 - ef->q) * mismatch);
+          *oes    = *score;
           break;
         case 2:
-          *score -= (1 - ef->q) * mismatch; 
+          tmp     = (1 - ef->q) * mismatch;
+          *oes   += (ef->q * match - tmp);
+          *score -= tmp; 
           break;
         case 3:
           *score -= mismatch;
+          *oes   += (ef->q * match - (1 - ef->q) * mismatch);
           break;
       }
    }
@@ -285,25 +291,45 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
                *score += (sc_eqT[(int)qright][(int)qleft] - (1 - sc_eqT[(int)qright][(int)qleft] / match) * mismatch);
                break;
            }
+          *oes    = *score;
           break;
         case 2:
           switch (dleft)
            {
              case 'A':
                *score += sc_eqA[(int)qright][(int)qleft];
+               *oes += (sc_eqA[(int)qright][(int)qleft] - (1 - sc_eqA[(int)qright][(int)qleft] / match) * mismatch);
                break;
              case 'C':
                *score += sc_eqC[(int)qright][(int)qleft];
+               *oes   += (sc_eqC[(int)qright][(int)qleft] - (1 - sc_eqC[(int)qright][(int)qleft] / match) * mismatch);
                break;
              case 'G':
                *score += sc_eqG[(int)qright][(int)qleft];
+               *oes   += (sc_eqG[(int)qright][(int)qleft] - (1 - sc_eqG[(int)qright][(int)qleft] / match) * mismatch);
                break;
              case 'T':
                *score += sc_eqT[(int)qright][(int)qleft];
+               *oes   += (sc_eqT[(int)qright][(int)qleft] - (1 - sc_eqT[(int)qright][(int)qleft] / match) * mismatch);
                break;
            }
           break;
         case 3:
+          switch (dleft)
+           {
+             case 'A':
+               *oes += (sc_eqA[(int)qright][(int)qleft] - (1 - sc_eqA[(int)qright][(int)qleft] / match) * mismatch);
+               break;
+             case 'C':
+               *oes += (sc_eqC[(int)qright][(int)qleft] - (1 - sc_eqC[(int)qright][(int)qleft] / match) * mismatch);
+               break;
+             case 'G':
+               *oes += (sc_eqG[(int)qright][(int)qleft] - (1 - sc_eqG[(int)qright][(int)qleft] / match) * mismatch);
+               break;
+             case 'T':
+               *oes += (sc_eqT[(int)qright][(int)qleft] - (1 - sc_eqT[(int)qright][(int)qleft] / match) * mismatch);
+               break;
+           }
           *score += match;
           break;
       }
@@ -372,6 +398,7 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
                 }
                break;
            }
+          *oes = *score;
           break;
         case 2:
           switch  (dleft)
@@ -381,12 +408,15 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
                 {
                   case 'C':
                     *score -= sc_neqAC[(int)qleft][(int)qright];
+                    *oes    = *oes - (sc_neqAC[(int)qleft][(int)qright] - (1 - sc_neqAC[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'G':
                     *score -= sc_neqAG[(int)qleft][(int)qright];
+                    *oes    = *oes - (sc_neqAG[(int)qleft][(int)qright] - (1 - sc_neqAG[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'T':
                     *score -= sc_neqAT[(int)qleft][(int)qright];
+                    *oes    = *oes - (sc_neqAT[(int)qleft][(int)qright] - (1 - sc_neqAT[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                 }
                break;
@@ -395,12 +425,15 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
                 {
                   case 'A':
                     *score -= sc_neqCA[(int)qleft][(int)qright];
+                    *oes    = *oes - (sc_neqCA[(int)qleft][(int)qright] - (1 - sc_neqCA[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'G':
                     *score -= sc_neqCG[(int)qleft][(int)qright];
+                    *oes    = *oes - (sc_neqCG[(int)qleft][(int)qright] - (1 - sc_neqCG[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'T':
                     *score -= sc_neqCT[(int)qleft][(int)qright];
+                    *oes    = *oes - (sc_neqCT[(int)qleft][(int)qright] - (1 - sc_neqCT[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                 }
                break;
@@ -409,12 +442,15 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
                 {
                   case 'A':
                     *score -= sc_neqGA[(int)qleft][(int)qright];
+                    *oes    = *oes - (sc_neqGA[(int)qleft][(int)qright] - (1 - sc_neqGA[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'C':
                     *score -= sc_neqGC[(int)qleft][(int)qright];
+                    *oes    = *oes - (sc_neqGC[(int)qleft][(int)qright] - (1 - sc_neqGC[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'T':
                     *score -= sc_neqGT[(int)qleft][(int)qright];
+                    *oes    = *oes - (sc_neqGT[(int)qleft][(int)qright] - (1 - sc_neqGT[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                 }
                break;
@@ -423,13 +459,15 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
                 {
                   case 'A':
                     *score -= sc_neqTA[(int)qleft][(int)qright];
-                    break;
+                    *oes    = *oes - (sc_neqTA[(int)qleft][(int)qright] - (1 - sc_neqTA[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'C':
                     *score -= sc_neqTC[(int)qleft][(int)qright];
+                    *oes    = *oes - (sc_neqTC[(int)qleft][(int)qright] - (1 - sc_neqTC[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                   case 'G':
                     *score -= sc_neqTG[(int)qleft][(int)qright];
+                    *oes    = *oes - (sc_neqTG[(int)qleft][(int)qright] - (1 - sc_neqTG[(int)qleft][(int)qright] / mismatch) * match);
                     break;
                 }
                break;
@@ -437,6 +475,65 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
           break;
         case 3:
           *score -= mismatch;
+           switch  (dleft)
+           {
+             case 'A':
+               switch (dright)
+                {
+                  case 'C':
+                    *oes = *oes - (sc_neqAC[(int)qleft][(int)qright] - (1 - sc_neqAC[(int)qleft][(int)qright] / mismatch) * match);
+                    break;
+                  case 'G':
+                    *oes = *oes - (sc_neqAG[(int)qleft][(int)qright] - (1 - sc_neqAG[(int)qleft][(int)qright] / mismatch) * match);
+                    break;
+                  case 'T':
+                    *oes = *oes - (sc_neqAT[(int)qleft][(int)qright] - (1 - sc_neqAT[(int)qleft][(int)qright] / mismatch) * match);
+                    break;
+                }
+               break;
+             case 'C':
+               switch (dright)
+                {
+                  case 'A':
+                    *oes = *oes - (sc_neqCA[(int)qleft][(int)qright] - (1 - sc_neqCA[(int)qleft][(int)qright] / mismatch) * match);
+                    break;
+                  case 'G':
+                    *oes = *oes - (sc_neqCG[(int)qleft][(int)qright] - (1 - sc_neqCG[(int)qleft][(int)qright] / mismatch) * match);
+                    break;
+                  case 'T':
+                    *oes = *oes - (sc_neqCT[(int)qleft][(int)qright] - (1 - sc_neqCT[(int)qleft][(int)qright] / mismatch) * match);
+                    break;
+                }
+               break;
+             case 'G':
+               switch (dright)
+                {
+                  case 'A':
+                    *oes = *oes - (sc_neqGA[(int)qleft][(int)qright] - (1 - sc_neqGA[(int)qleft][(int)qright] / mismatch) * match);
+                    break;
+                  case 'C':
+                    *oes = *oes - (sc_neqGC[(int)qleft][(int)qright] - (1 - sc_neqGC[(int)qleft][(int)qright] / mismatch) * match);
+                    break;
+                  case 'T':
+                    *oes = *oes - (sc_neqGT[(int)qleft][(int)qright] - (1 - sc_neqGT[(int)qleft][(int)qright] / mismatch) * match);
+                    break;
+                }
+               break;
+             case 'T':
+               switch (dright)
+                {
+                  case 'A':
+                    *oes = *oes - (sc_neqTA[(int)qleft][(int)qright] - (1 - sc_neqTA[(int)qleft][(int)qright] / mismatch) * match);
+                    break;
+                  case 'C':
+                    *oes = *oes - (sc_neqTC[(int)qleft][(int)qright] - (1 - sc_neqTC[(int)qleft][(int)qright] / mismatch) * match);
+                    break;
+                  case 'G':
+                    *oes = *oes - (sc_neqTG[(int)qleft][(int)qright] - (1 - sc_neqTG[(int)qleft][(int)qright] / mismatch) * match);
+                    break;
+                }
+               break;
+           }
           break;
       }
    }
@@ -444,20 +541,26 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
 
 /* TODO: Remember to speed up this function by doing something with the multiplication and division of match/mismatch */
 inline void 
-scoring (char dleft, char dright, char qleft, char qright, int score_method, double * score, int match, int mismatch)
+scoring (char dleft, char dright, char qleft, char qright, int score_method, double * score, double * oes, int match, int mismatch)
 {
+  double tmp;
+
   if (dleft == 'N' || dright == 'N')       /* one of them is N */
    {
      switch (score_method)
       {
         case 1:
           *score += (0.25 * match - (1 - 0.25) * mismatch);
+          *oes    = *score;
           break;
         case 2:
-          *score -= (1 - 0.25) * mismatch; 
+          tmp     = (1 - 0.25) * mismatch;
+          *oes   += (0.25 * match - tmp);
+          *score -= tmp; 
           break;
         case 3:
           *score -= mismatch;
+          *oes += (0.25 * match - (1 - 0.25) * mismatch);
           break;
       }
    }
@@ -467,12 +570,16 @@ scoring (char dleft, char dright, char qleft, char qright, int score_method, dou
       {
         case 1:
           *score += (sc_eq[(int)qright][(int)qleft] - (1 - sc_eq[(int)qright][(int)qleft] / match) * mismatch);
+          *oes    = *score;
           break;
         case 2:
-          *score += sc_eq[(int)qright][(int)qleft];
+          tmp     = sc_eq[(int)qright][(int)qleft];
+          *oes   += (tmp - (1 - sc_eq[(int)qright][(int)qleft] / match) * mismatch);
+          *score += tmp;
           break;
         case 3:
           *score += match;
+          *oes   += (sc_eq[(int)qright][(int)qleft] - (1 - sc_eq[(int)qright][(int)qleft] / match) * mismatch);
           break;
       }
    }
@@ -482,12 +589,16 @@ scoring (char dleft, char dright, char qleft, char qright, int score_method, dou
       {
         case 1:
           *score = *score - (sc_neq[(int)qright][(int)qleft] - (1 - sc_neq[(int)qright][(int)qleft] / mismatch) * match);
+          *oes    = *score;
           break;
         case 2:
-          *score -= sc_neq[(int)qright][(int)qleft];
+          tmp     = sc_neq[(int)qright][(int)qleft];
+          *oes    = *oes - (tmp - (1 - sc_neq[(int)qright][(int)qleft] / mismatch) * match);
+          *score -= tmp;
           break;
         case 3:
           *score -= mismatch;
+          *oes    = *score - (sc_neq[(int)qright][(int)qleft] - (1 - sc_neq[(int)qright][(int)qleft] / mismatch) * match);
           break;
       }
    }
@@ -499,7 +610,9 @@ assembly_ef (struct read_t * left, struct read_t * right, int match_score, int m
   int                   i,j;
   int                   n;
   double                score;
+  double                oes;
   double                best_score = 0;
+  double                best_oes = 0;
   int                   best_overlap = 0;       /* overlap of the best alignment */
   int                   run_through = 0;
   int                   nMatch;
@@ -511,19 +624,22 @@ assembly_ef (struct read_t * left, struct read_t * right, int match_score, int m
      
   /* compute score for every overlap */
   score = 0;
+  oes   = 0;
   for (i = 0; i <= n; ++ i)    /* the size of the overlap */
    {     
      nMatch = 0;
      score = 0;
+     oes   = 0;
      for (j = 0; j < i; ++ j)
       {
-        scoring_ef (left->data[n - i + j], right->data[j], left->qscore[n - i + j], right->qscore[j], sw->score_method, &score, match_score, mismatch_score, ef);
+        scoring_ef (left->data[n - i + j], right->data[j], left->qscore[n - i + j], right->qscore[j], sw->score_method, &score, &oes, match_score, mismatch_score, ef);
         if (left->data[n - i + j] == right->data[j]) ++nMatch;
       }
      if (score > best_score)
       {
         best_overlap = i;
         best_score   = score;
+        best_oes     = oes;
       }
    }
 
@@ -531,10 +647,11 @@ assembly_ef (struct read_t * left, struct read_t * right, int match_score, int m
   for (i = n - 1; i > 0; --i)
    {
      score  = 0;
+     oes    = 0;
      nMatch = 0;
      for (j = 0; j < i; ++j)
       {
-        scoring_ef (left->data[j], right->data[n - i + j], left->qscore[j], right->qscore[n - i + j], sw->score_method, &score, match_score, mismatch_score, ef);
+        scoring_ef (left->data[j], right->data[n - i + j], left->qscore[j], right->qscore[n - i + j], sw->score_method, &score, &oes, match_score, mismatch_score, ef);
         if (left->data[n - i + j] == right->data[j]) ++nMatch;
       }
 
@@ -543,17 +660,20 @@ assembly_ef (struct read_t * left, struct read_t * right, int match_score, int m
         run_through  = 1;
         best_overlap = i;
         best_score   = score;
+        best_oes     = oes;
       }
    }
 
 
   if (sw->test == 1)
    {
-     st_pass = stat_test2 (sw->p_value, best_score, sw->min_overlap, ef->q);
+     //st_pass = stat_test2 (sw->p_value, best_score, sw->min_overlap, ef->q);
+     st_pass = stat_test2 (sw->p_value, best_oes, sw->min_overlap, ef->q);
    }
   else
    {
-     st_pass = stat_test2 (sw->p_value, best_score, best_overlap, ef->q);
+     //st_pass = stat_test2 (sw->p_value, best_score, best_overlap, ef->q);
+     st_pass = stat_test2 (sw->p_value, best_oes, best_overlap, ef->q);
    }
 
   if (!st_pass) return (0);
@@ -668,7 +788,9 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
   int                   i,j;
   int                   n;
   double                score;
+  double                oes;
   double                best_score = 0;
+  double                best_oes   = 0;
   int                   best_overlap = 0;       /* overlap of the best alignment */
   int                   run_through = 0;
   int                   nMatch;
@@ -680,19 +802,22 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
      
   /* compute score for every overlap */
   score = 0;
+  oes   = 0;
   for (i = 0; i <= n; ++ i)    /* the size of the overlap */
    {     
      nMatch = 0;
      score = 0;
+     oes   = 0;
      for (j = 0; j < i; ++ j)
       {
-        scoring (left->data[n - i + j], right->data[j], left->qscore[n - i + j], right->qscore[j], sw->score_method, &score, match_score, mismatch_score);
+        scoring (left->data[n - i + j], right->data[j], left->qscore[n - i + j], right->qscore[j], sw->score_method, &score, &oes, match_score, mismatch_score);
         if (left->data[n - i + j] == right->data[j]) ++nMatch;
       }
      if (score > best_score)
       {
         best_overlap = i;
         best_score   = score;
+        best_oes     = oes;
       }
    }
 
@@ -700,10 +825,11 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
   for (i = n - 1; i > 0; --i)
    {
      score  = 0;
+     oes    = 0;
      nMatch = 0;
      for (j = 0; j < i; ++j)
       {
-        scoring (left->data[j], right->data[n - i + j], left->qscore[j], right->qscore[n - i + j], sw->score_method, &score, match_score, mismatch_score);
+        scoring (left->data[j], right->data[n - i + j], left->qscore[j], right->qscore[n - i + j], sw->score_method, &score, &oes, match_score, mismatch_score);
         if (left->data[n - i + j] == right->data[j]) ++nMatch;
       }
 
@@ -712,17 +838,20 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
         run_through  = 1;
         best_overlap = i;
         best_score   = score;
+        best_oes     = oes;
       }
    }
 
 
   if (sw->test == 1)
    {
-     st_pass = stat_test2 (sw->p_value, best_score, sw->min_overlap, 0.25);
+     //st_pass = stat_test2 (sw->p_value, best_score, sw->min_overlap, 0.25);
+     st_pass = stat_test2 (sw->p_value, best_oes, sw->min_overlap, 0.25);
    }
   else
    {
-     st_pass = stat_test2 (sw->p_value, best_score, best_overlap, 0.25);
+     //st_pass = stat_test2 (sw->p_value, best_score, best_overlap, 0.25);
+     st_pass = stat_test2 (sw->p_value, best_oes, best_overlap, 0.25);
    }
 
   if (!st_pass) return (0);
