@@ -44,16 +44,16 @@ double     sc_eqT[256][256];
 double   sc_neqAC[256][256];
 double   sc_neqAG[256][256];
 double   sc_neqAT[256][256];
-double   sc_neqCA[256][256];
+//double   sc_neqCA[256][256];
 double   sc_neqCG[256][256];
 double   sc_neqCT[256][256];
-double   sc_neqGA[256][256];
-double   sc_neqGC[256][256];
+//double   sc_neqGA[256][256];
+//double   sc_neqGC[256][256];
 double   sc_neqGT[256][256];
-double   sc_neqTA[256][256];
-double   sc_neqTC[256][256];
-double   sc_neqTG[256][256];
-double     qs_mul[256][256];
+//double   sc_neqTA[256][256];
+//double   sc_neqTC[256][256];
+//double   sc_neqTG[256][256];
+//double     qs_mul[256][256];
 
 int match_score    = 1;
 int mismatch_score = 1;
@@ -218,7 +218,7 @@ void init_scores (int match, int mismatch, struct emp_freq * ef)
 
         sc_eq[i][j]  =    match * ((1 - ex) * (1 - ey) + (ex * ey) / 3.0);
         sc_neq[i][j] = mismatch * (1 - (1.0 / 3.0) * (1 - ex) * ey - (1.0 / 3.0) * (1 - ey) * ex - (2.0 / 9.0) * ex * ey);
-        qs_mul[i][j] = ex * ey;
+        //qs_mul[i][j] = ex * ey;
 
         sc_eqA[i][j] = match * (1 - ex) * (1 - ey) + (ex * ey) * pcgt2 / p2cgt;
         sc_eqC[i][j] = match * (1 - ex) * (1 - ey) + (ex * ey) * pagt2 / p2agt;
@@ -226,27 +226,28 @@ void init_scores (int match, int mismatch, struct emp_freq * ef)
         sc_eqT[i][j] = match * (1 - ex) * (1 - ey) + (ex * ey) * pacg2 / p2acg;
 
         sc_neqAC[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pc / pcgt) - (1 - ex) * ey * (ef->pa / pagt) - ex * ey * (pg2 + pt2) / pgt2);
-        sc_neqCA[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pa / pagt) - (1 - ex) * ey * (ef->pc / pcgt) - ex * ey * (pg2 + pt2) / pgt2);
+        //sc_neqCA[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pa / pagt) - (1 - ex) * ey * (ef->pc / pcgt) - ex * ey * (pg2 + pt2) / pgt2);
 
         sc_neqAG[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pg / pcgt) - (1 - ex) * ey * (ef->pa / pact) - ex * ey * (pc2 + pt2) / pct2);
-        sc_neqGA[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pa / pact) - (1 - ex) * ey * (ef->pg / pcgt) - ex * ey * (pc2 + pt2) / pct2);
+        //sc_neqGA[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pa / pact) - (1 - ex) * ey * (ef->pg / pcgt) - ex * ey * (pc2 + pt2) / pct2);
 
         sc_neqAT[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pt / pcgt) - (1 - ex) * ey * (ef->pa / pacg) - ex * ey * (pc2 + pg2) / pcg2);
-        sc_neqTA[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pa / pacg) - (1 - ex) * ey * (ef->pt / pcgt) - ex * ey * (pc2 + pg2) / pcg2);
+        //sc_neqTA[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pa / pacg) - (1 - ex) * ey * (ef->pt / pcgt) - ex * ey * (pc2 + pg2) / pcg2);
 
         sc_neqCG[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pg / pagt) - (1 - ex) * ey * (ef->pc / pact) - ex * ey * (pa2 + pt2) / pat2);
-        sc_neqGC[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pc / pact) - (1 - ex) * ey * (ef->pg / pagt) - ex * ey * (pa2 + pt2) / pat2);
+        //sc_neqGC[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pc / pact) - (1 - ex) * ey * (ef->pg / pagt) - ex * ey * (pa2 + pt2) / pat2);
 
         sc_neqCT[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pt / pagt) - (1 - ex) * ey * (ef->pc / pacg) - ex * ey * (pa2 + pg2) / pag2);
-        sc_neqTC[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pc / pacg) - (1 - ex) * ey * (ef->pt / pagt) - ex * ey * (pa2 + pg2) / pag2);
+        //sc_neqTC[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pc / pacg) - (1 - ex) * ey * (ef->pt / pagt) - ex * ey * (pa2 + pg2) / pag2);
 
         sc_neqGT[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pt / pact) - (1 - ex) * ey * (ef->pg / pacg) - ex * ey * (pa2 + pc2) / pac2);
-        sc_neqTG[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pg / pacg) - (1 - ex) * ey * (ef->pt / pact) - ex * ey * (pa2 + pc2) / pac2);
+        //sc_neqTG[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pg / pacg) - (1 - ex) * ey * (ef->pt / pact) - ex * ey * (pa2 + pc2) / pac2);
 
      }
    }
 }
 
+#ifdef EXPERIMENTAL
 inline void
 scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, double * score, double * oes, int match, int mismatch, struct emp_freq * ef)
 {
@@ -538,6 +539,323 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
       }
    }
 }
+#endif
+
+inline void
+scoring_ef_nm (char dleft, char dright, char qleft, char qright, int score_method, double * score, double * oes, struct emp_freq * ef)
+{
+  double tmp;
+
+  if (dleft == 'N' || dright == 'N')       /* one of them is N */
+   {
+     switch (score_method)
+      {
+        case 1:
+          *score += (ef->q - (1 - ef->q));
+          *oes    = *score;
+          break;
+        case 2:
+          tmp     = (1 - ef->q);
+          *oes   += (ef->q - tmp);
+          *score -= tmp; 
+          break;
+        case 3:
+          *score -= 1;
+          *oes   += (ef->q - (1 - ef->q));
+          break;
+      }
+   }
+  else if (dleft == dright)     /* equal */
+   {
+     switch (score_method)
+      {
+        case 1:
+          switch (dleft)
+           {
+             case 'A':
+               *score += (sc_eqA[(int)qright][(int)qleft] - (1 - sc_eqA[(int)qright][(int)qleft]));
+               break;
+             case 'C':
+               *score += (sc_eqC[(int)qright][(int)qleft] - (1 - sc_eqC[(int)qright][(int)qleft]));
+               break;
+             case 'G':
+               *score += (sc_eqG[(int)qright][(int)qleft] - (1 - sc_eqG[(int)qright][(int)qleft]));
+               break;
+             case 'T':
+               *score += (sc_eqT[(int)qright][(int)qleft] - (1 - sc_eqT[(int)qright][(int)qleft]));
+               break;
+           }
+          *oes    = *score;
+          break;
+        case 2:
+          switch (dleft)
+           {
+             case 'A':
+               *score += sc_eqA[(int)qright][(int)qleft];
+               *oes += (sc_eqA[(int)qright][(int)qleft] - (1 - sc_eqA[(int)qright][(int)qleft]));
+               break;
+             case 'C':
+               *score += sc_eqC[(int)qright][(int)qleft];
+               *oes   += (sc_eqC[(int)qright][(int)qleft] - (1 - sc_eqC[(int)qright][(int)qleft]));
+               break;
+             case 'G':
+               *score += sc_eqG[(int)qright][(int)qleft];
+               *oes   += (sc_eqG[(int)qright][(int)qleft] - (1 - sc_eqG[(int)qright][(int)qleft]));
+               break;
+             case 'T':
+               *score += sc_eqT[(int)qright][(int)qleft];
+               *oes   += (sc_eqT[(int)qright][(int)qleft] - (1 - sc_eqT[(int)qright][(int)qleft]));
+               break;
+           }
+          break;
+        case 3:
+          switch (dleft)
+           {
+             case 'A':
+               *oes += (sc_eqA[(int)qright][(int)qleft] - (1 - sc_eqA[(int)qright][(int)qleft]));
+               break;
+             case 'C':
+               *oes += (sc_eqC[(int)qright][(int)qleft] - (1 - sc_eqC[(int)qright][(int)qleft]));
+               break;
+             case 'G':
+               *oes += (sc_eqG[(int)qright][(int)qleft] - (1 - sc_eqG[(int)qright][(int)qleft]));
+               break;
+             case 'T':
+               *oes += (sc_eqT[(int)qright][(int)qleft] - (1 - sc_eqT[(int)qright][(int)qleft]));
+               break;
+           }
+          *score += 1;
+          break;
+      }
+   }
+  else          /* not equal */
+   {
+     switch (score_method)
+      {
+        case 1:
+           switch  (dleft)
+           {
+             case 'A':
+               switch (dright)
+                {
+                  case 'C':
+                    *score = *score - (sc_neqAC[(int)qleft][(int)qright] - (1 - sc_neqAC[(int)qleft][(int)qright]));
+                    break;
+                  case 'G':
+                    *score = *score - (sc_neqAG[(int)qleft][(int)qright] - (1 - sc_neqAG[(int)qleft][(int)qright]));
+                    break;
+                  case 'T':
+                    *score = *score - (sc_neqAT[(int)qleft][(int)qright] - (1 - sc_neqAT[(int)qleft][(int)qright]));
+                    break;
+                }
+               break;
+             case 'C':
+               switch (dright)
+                {
+                  case 'A':
+                    //*score = *score - (sc_neqCA[(int)qleft][(int)qright] - (1 - sc_neqCA[(int)qleft][(int)qright]));
+                    *score = *score - (sc_neqAC[(int)qright][(int)qleft] - (1 - sc_neqAC[(int)qright][(int)qleft]));
+                    break;
+                  case 'G':
+                    *score = *score - (sc_neqCG[(int)qleft][(int)qright] - (1 - sc_neqCG[(int)qleft][(int)qright]));
+                    break;
+                  case 'T':
+                    *score = *score - (sc_neqCT[(int)qleft][(int)qright] - (1 - sc_neqCT[(int)qleft][(int)qright]));
+                    break;
+                }
+               break;
+             case 'G':
+               switch (dright)
+                {
+                  case 'A':
+                    //*score = *score - (sc_neqGA[(int)qleft][(int)qright] - (1 - sc_neqGA[(int)qleft][(int)qright]));
+                    *score = *score - (sc_neqAG[(int)qright][(int)qleft] - (1 - sc_neqAG[(int)qright][(int)qleft]));
+                    break;
+                  case 'C':
+                    //*score = *score - (sc_neqGC[(int)qleft][(int)qright] - (1 - sc_neqGC[(int)qleft][(int)qright]));
+                    *score = *score - (sc_neqCG[(int)qright][(int)qleft] - (1 - sc_neqCG[(int)qright][(int)qleft]));
+                    break;
+                  case 'T':
+                    *score = *score - (sc_neqGT[(int)qleft][(int)qright] - (1 - sc_neqGT[(int)qleft][(int)qright]));
+                    break;
+                }
+               break;
+             case 'T':
+               switch (dright)
+                {
+                  case 'A':
+                    //*score = *score - (sc_neqTA[(int)qleft][(int)qright] - (1 - sc_neqTA[(int)qleft][(int)qright]));
+                    *score = *score - (sc_neqAT[(int)qright][(int)qleft] - (1 - sc_neqAT[(int)qright][(int)qleft]));
+                    break;
+                  case 'C':
+                    //*score = *score - (sc_neqTC[(int)qleft][(int)qright] - (1 - sc_neqTC[(int)qleft][(int)qright]));
+                    *score = *score - (sc_neqCT[(int)qright][(int)qleft] - (1 - sc_neqCT[(int)qright][(int)qleft]));
+                    break;
+                  case 'G':
+                    //*score = *score - (sc_neqTG[(int)qleft][(int)qright] - (1 - sc_neqTG[(int)qleft][(int)qright]));
+                    *score = *score - (sc_neqGT[(int)qright][(int)qleft] - (1 - sc_neqGT[(int)qright][(int)qleft]));
+                    break;
+                }
+               break;
+           }
+          *oes = *score;
+          break;
+        case 2:
+          switch  (dleft)
+           {
+             case 'A':
+               switch (dright)
+                {
+                  case 'C':
+                    tmp     = sc_neqAC[(int)qleft][(int)qright];
+                    *score -= tmp;
+                    *oes    = *oes - (tmp - (1 - tmp));
+                    break;
+                  case 'G':
+                    tmp     = sc_neqAG[(int)qleft][(int)qright];
+                    *score -= tmp;
+                    *oes    = *oes - (tmp - (1 - tmp));
+                    break;
+                  case 'T':
+                    tmp     = sc_neqAT[(int)qleft][(int)qright];
+                    *score -= tmp;
+                    *oes    = *oes - (tmp - (1 - tmp));
+                    break;
+                }
+               break;
+             case 'C':
+               switch (dright)
+                {
+                  case 'A':
+                    tmp     = sc_neqAC[(int)qright][(int)qleft];
+                    *score -= tmp;
+                    *oes    = *oes - (tmp - (1 - tmp));
+                    break;
+                  case 'G':
+                    tmp     = sc_neqCG[(int)qleft][(int)qright];
+                    *score -= tmp;
+                    *oes    = *oes - (tmp - (1 - tmp));
+                    break;
+                  case 'T':
+                    tmp     = sc_neqCT[(int)qleft][(int)qright];
+                    *score -= tmp;
+                    *oes    = *oes - (tmp - (1 - tmp));
+                    break;
+                }
+               break;
+             case 'G':
+               switch (dright)
+                {
+                  case 'A':
+                    tmp     = sc_neqAG[(int)qright][(int)qleft];
+                    *score -= tmp;
+                    *oes    = *oes - (tmp - (1 - tmp));
+                    break;
+                  case 'C':
+                    tmp     = sc_neqCG[(int)qright][(int)qleft];
+                    *score -= tmp;
+                    *oes    = *oes - (tmp - (1 - tmp));
+                    break;
+                  case 'T':
+                    tmp     = sc_neqGT[(int)qleft][(int)qright];
+                    *score -= tmp;
+                    *oes    = *oes - (tmp - (1 - tmp));
+                    break;
+                }
+               break;
+             case 'T':
+               switch (dright)
+                {
+                  case 'A':
+                    tmp     = sc_neqAT[(int)qright][(int)qleft];
+                    *score -= tmp;
+                    *oes    = *oes - (tmp - (1 - tmp));
+                    break;
+                  case 'C':
+                    tmp     = sc_neqCT[(int)qright][(int)qleft];
+                    *score -= tmp;
+                    *oes    = *oes - (tmp - (1 - tmp));
+                    break;
+                  case 'G':
+                    tmp     = sc_neqGT[(int)qright][(int)qleft];
+                    *score -= tmp;
+                    *oes    = *oes - (tmp - (1 - tmp));
+                    break;
+                }
+               break;
+           }
+          break;
+        case 3:
+          *score -= 1;
+           switch  (dleft)
+           {
+             case 'A':
+               switch (dright)
+                {
+                  case 'C':
+                    *oes = *oes - (sc_neqAC[(int)qleft][(int)qright] - (1 - sc_neqAC[(int)qleft][(int)qright]));
+                    break;
+                  case 'G':
+                    *oes = *oes - (sc_neqAG[(int)qleft][(int)qright] - (1 - sc_neqAG[(int)qleft][(int)qright]));
+                    break;
+                  case 'T':
+                    *oes = *oes - (sc_neqAT[(int)qleft][(int)qright] - (1 - sc_neqAT[(int)qleft][(int)qright]));
+                    break;
+                }
+               break;
+             case 'C':
+               switch (dright)
+                {
+                  case 'A':
+                    //*oes = *oes - (sc_neqCA[(int)qleft][(int)qright] - (1 - sc_neqCA[(int)qleft][(int)qright]));
+                    *oes = *oes - (sc_neqAC[(int)qright][(int)qleft] - (1 - sc_neqAC[(int)qright][(int)qleft]));
+                    break;
+                  case 'G':
+                    *oes = *oes - (sc_neqCG[(int)qleft][(int)qright] - (1 - sc_neqCG[(int)qleft][(int)qright]));
+                    break;
+                  case 'T':
+                    *oes = *oes - (sc_neqCT[(int)qleft][(int)qright] - (1 - sc_neqCT[(int)qleft][(int)qright]));
+                    break;
+                }
+               break;
+             case 'G':
+               switch (dright)
+                {
+                  case 'A':
+                    //*oes = *oes - (sc_neqGA[(int)qleft][(int)qright] - (1 - sc_neqGA[(int)qleft][(int)qright]));
+                    *oes = *oes - (sc_neqAG[(int)qright][(int)qleft] - (1 - sc_neqAG[(int)qright][(int)qleft]));
+                    break;
+                  case 'C':
+                    //*oes = *oes - (sc_neqGC[(int)qleft][(int)qright] - (1 - sc_neqGC[(int)qleft][(int)qright]));
+                    *oes = *oes - (sc_neqCG[(int)qright][(int)qleft] - (1 - sc_neqCG[(int)qright][(int)qleft]));
+                    break;
+                  case 'T':
+                    *oes = *oes - (sc_neqGT[(int)qleft][(int)qright] - (1 - sc_neqGT[(int)qleft][(int)qright]));
+                    break;
+                }
+               break;
+             case 'T':
+               switch (dright)
+                {
+                  case 'A':
+                    //*oes = *oes - (sc_neqTA[(int)qleft][(int)qright] - (1 - sc_neqTA[(int)qleft][(int)qright]));
+                    *oes = *oes - (sc_neqAT[(int)qright][(int)qleft] - (1 - sc_neqAT[(int)qright][(int)qleft]));
+                    break;
+                  case 'C':
+                    //*oes = *oes - (sc_neqTC[(int)qleft][(int)qright] - (1 - sc_neqTC[(int)qleft][(int)qright]));
+                    *oes = *oes - (sc_neqCT[(int)qright][(int)qleft] - (1 - sc_neqCT[(int)qright][(int)qleft]));
+                    break;
+                  case 'G':
+                    //*oes = *oes - (sc_neqTG[(int)qleft][(int)qright] - (1 - sc_neqTG[(int)qleft][(int)qright]));
+                    *oes = *oes - (sc_neqGT[(int)qright][(int)qleft] - (1 - sc_neqGT[(int)qright][(int)qleft]));
+                    break;
+                }
+               break;
+           }
+          break;
+      }
+   }
+}
 
 /* TODO: Remember to speed up this function by doing something with the multiplication and division of match/mismatch */
 inline void 
@@ -604,6 +922,71 @@ scoring (char dleft, char dright, char qleft, char qright, int score_method, dou
    }
 }
 
+/* TODO: Remember to speed up this function by doing something with the multiplication and division of match/mismatch */
+inline void 
+scoring_nm (char dleft, char dright, char qleft, char qright, int score_method, double * score, double * oes)
+{
+  double tmp;
+
+  if (dleft == 'N' || dright == 'N')       /* one of them is N */
+   {
+     switch (score_method)
+      {
+        case 1:
+          *score += ( - 0.5);
+          *oes    = *score;
+          break;
+        case 2:
+          tmp     = 0.75;
+          *oes   += ( - 0.5);
+          *score -= 0.75; 
+          break;
+        case 3:
+          *score -= 1;
+          *oes += ( - 0.5 );
+          break;
+      }
+   }
+  else if (dleft == dright)     /* equal */
+   {
+     switch (score_method)
+      {
+        case 1:
+          *score += (sc_eq[(int)qright][(int)qleft] - (1 - sc_eq[(int)qright][(int)qleft]) );
+          *oes    = *score;
+          break;
+        case 2:
+          tmp     = sc_eq[(int)qright][(int)qleft];
+          *oes   += (tmp - (1 - sc_eq[(int)qright][(int)qleft] ));
+          *score += tmp;
+          break;
+        case 3:
+          *score += 1;
+          *oes   += (sc_eq[(int)qright][(int)qleft] - (1 - sc_eq[(int)qright][(int)qleft] ) );
+          break;
+      }
+   }
+  else          /* not equal */
+   {
+     switch (score_method)
+      {
+        case 1:
+          *score = *score - (sc_neq[(int)qright][(int)qleft] - (1 - sc_neq[(int)qright][(int)qleft] ) );
+          *oes    = *score;
+          break;
+        case 2:
+          tmp     = sc_neq[(int)qright][(int)qleft];
+          *oes    = *oes - (tmp - (1 - sc_neq[(int)qright][(int)qleft] ) );
+          *score -= tmp;
+          break;
+        case 3:
+          *score -= 1;
+          *oes    = *score - (sc_neq[(int)qright][(int)qleft] - (1 - sc_neq[(int)qright][(int)qleft] ) );
+          break;
+      }
+   }
+}
+
 inline int
 assembly_ef (struct read_t * left, struct read_t * right, int match_score, int mismatch_score, struct emp_freq * ef, struct user_args  * sw)
 {
@@ -632,7 +1015,8 @@ assembly_ef (struct read_t * left, struct read_t * right, int match_score, int m
      oes   = 0;
      for (j = 0; j < i; ++ j)
       {
-        scoring_ef (left->data[n - i + j], right->data[j], left->qscore[n - i + j], right->qscore[j], sw->score_method, &score, &oes, match_score, mismatch_score, ef);
+        //scoring_ef (left->data[n - i + j], right->data[j], left->qscore[n - i + j], right->qscore[j], sw->score_method, &score, &oes, match_score, mismatch_score, ef);
+        scoring_ef_nm (left->data[n - i + j], right->data[j], left->qscore[n - i + j], right->qscore[j], sw->score_method, &score, &oes, ef);
         if (left->data[n - i + j] == right->data[j]) ++nMatch;
       }
      if (score > best_score)
@@ -651,7 +1035,8 @@ assembly_ef (struct read_t * left, struct read_t * right, int match_score, int m
      nMatch = 0;
      for (j = 0; j < i; ++j)
       {
-        scoring_ef (left->data[j], right->data[n - i + j], left->qscore[j], right->qscore[n - i + j], sw->score_method, &score, &oes, match_score, mismatch_score, ef);
+        //scoring_ef (left->data[j], right->data[n - i + j], left->qscore[j], right->qscore[n - i + j], sw->score_method, &score, &oes, match_score, mismatch_score, ef);
+        scoring_ef_nm (left->data[j], right->data[n - i + j], left->qscore[j], right->qscore[n - i + j], sw->score_method, &score, &oes, ef);
         if (left->data[n - i + j] == right->data[j]) ++nMatch;
       }
 
@@ -810,7 +1195,8 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
      oes   = 0;
      for (j = 0; j < i; ++ j)
       {
-        scoring (left->data[n - i + j], right->data[j], left->qscore[n - i + j], right->qscore[j], sw->score_method, &score, &oes, match_score, mismatch_score);
+        //scoring (left->data[n - i + j], right->data[j], left->qscore[n - i + j], right->qscore[j], sw->score_method, &score, &oes, match_score, mismatch_score);
+        scoring_nm (left->data[n - i + j], right->data[j], left->qscore[n - i + j], right->qscore[j], sw->score_method, &score, &oes);
         if (left->data[n - i + j] == right->data[j]) ++nMatch;
       }
      if (score > best_score)
@@ -829,7 +1215,8 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
      nMatch = 0;
      for (j = 0; j < i; ++j)
       {
-        scoring (left->data[j], right->data[n - i + j], left->qscore[j], right->qscore[n - i + j], sw->score_method, &score, &oes, match_score, mismatch_score);
+        //scoring (left->data[j], right->data[n - i + j], left->qscore[j], right->qscore[n - i + j], sw->score_method, &score, &oes, match_score, mismatch_score);
+        scoring_nm (left->data[j], right->data[n - i + j], left->qscore[j], right->qscore[n - i + j], sw->score_method, &score, &oes);
         if (left->data[n - i + j] == right->data[j]) ++nMatch;
       }
 
@@ -862,7 +1249,7 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
    {
      if (best_overlap == 0)
       {
-        asm_len = 2 * n;
+        asm_len = (n << 1);
 
         for (j = 0; j < n; ++ j)
           if (left->data[j] == 'N' || left->data[j] == 'n')  ++uncalled;
@@ -870,7 +1257,7 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
           if (right->data[j] == 'N' || right->data[j] == 'n')  ++uncalled;
         uncalled /= asm_len;
 
-        if (2 * n - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
+        if ((n << 1) - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
          {
            *(left->data - 1) = 1;
          }
@@ -887,7 +1274,7 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
           if ((left->data[j] == 'N' || left->data[j] == 'n') && (right->data[j] == 'N' || right->data[j] == 'n')) ++uncalled;
         uncalled /= asm_len;
 
-        if (2 * n - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
+        if ((n << 1) - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
          {
            *(left->data - 1) = 0;
            assemble_overlap (left, right, 0, 0, n, left);
@@ -901,7 +1288,7 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
       }
      else
       {
-        asm_len = 2 * n - best_overlap;
+        asm_len = (n << 1) - best_overlap;
         for (j = 0; j < n - best_overlap; ++ j)
           if (left->data[j] == 'N' || left->data[j] == 'n')  ++uncalled;
         for (j = n - best_overlap; j < n; ++ j)
@@ -910,7 +1297,7 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
           if (right->data[j] == 'N' || right->data[j] == 'n')  ++uncalled;
         uncalled /= asm_len;
 
-        if (2 * n - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
+        if ((n << 1) - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
          {
            *(left->data - 1) = 1;
            
@@ -1903,7 +2290,6 @@ main (int argc, char * argv[])
                                    thr_global.yblock->fwd, 
                                    thr_global.yblock->rev);
 
-  ef = (struct emp_freq *)malloc (sizeof(struct emp_freq));
   if (sw.emp_freqs)
    {
      
@@ -1930,8 +2316,10 @@ main (int argc, char * argv[])
       {
          pthread_join (tid[i], (void **)&ef);
          a += ef->freqa; c += ef->freqc; g += ef->freqg; t += ef->freqt;
+         free (ef);
 //         printf ("tid: %d ef->a: %d ef->c: %d ef->g: %d ef->t: %d\n", (int)tid[i], ef->freqa, ef->freqc, ef->freqg, ef->freqt);
       }
+     ef = (struct emp_freq *)malloc (sizeof(struct emp_freq));
      ef->freqa = a; ef->freqc = c; ef->freqg = g; ef->freqt = t;
      ef->total = a + c + g + t;
      ef->pa = ef->freqa / ef->total; ef->pc = ef->freqc / ef->total; ef->pg = ef->freqg / ef->total; ef->pt = ef->freqt / ef->total;
@@ -1950,12 +2338,14 @@ main (int argc, char * argv[])
   thr_global.yblock->processed = 0;
   thr_global.yblock->threads   = 0;
 
+
   thr_global.io_thread = -1;
   thr_global.finish = 0;
 
    }
   else
    {
+     ef = (struct emp_freq *)malloc (sizeof(struct emp_freq));
      ef->freqa = ef->freqc = ef->freqg = ef->freqt = ef->total = ef->pa = ef->pc = ef->pg = ef->pt = ef->q = 0.25;
 //     printf ("Set emp freqs to 0.25\n");
    }
@@ -1996,9 +2386,11 @@ main (int argc, char * argv[])
    }
 
   free (ef);
+  free (tid);
 
   destroy_reader ();
   destroy_thr_global ();
+  free (thr_data);
   
   return (EXIT_SUCCESS);
 }

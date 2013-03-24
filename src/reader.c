@@ -10,6 +10,7 @@
 static FILE * fp1;
 static FILE * fp2;
 static char * mempool;
+static int eof1 = 1, eof2 = 1;
 
 /* READ_SIZE 10 and 3108 was the fastest till now */
 //struct block_t fwd_block;
@@ -66,6 +67,7 @@ void rewind_files (void)
 {
   rewind (fp1);
   rewind (fp2);
+  eof1 = eof2 = 1;
 }
 
 void init_fastq_reader_double_buffer (const char * file1, const char * file2, size_t memsize, struct block_t * pri_fwd, struct block_t * pri_rev, 
@@ -549,7 +551,8 @@ int get_next_reads (struct block_t * fwd_block, struct block_t * rev_block)
 int db_get_next_reads (struct block_t * fwd_block, struct block_t * rev_block, struct block_t * old_fwd_block, struct block_t * old_rev_block)
 {
   int n1, n2;
-  int eof1 = 1, eof2 = 1;
+
+  if (!eof1 || !eof2) return (0);
 
   if (eof1)  eof1 = db_read_fastq_block (fwd_block, fp1, old_fwd_block);
   if (eof2)  eof2 = db_read_fastq_block (rev_block, fp2, old_rev_block);
@@ -577,7 +580,6 @@ int db_get_next_reads (struct block_t * fwd_block, struct block_t * rev_block, s
         n2 = n1;
       }
    }
-  
   return (n1);
 }
 
