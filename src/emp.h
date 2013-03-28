@@ -9,6 +9,7 @@ struct emp_freq
    int freqc;
    int freqg;
    int freqt;
+   int freqn;
 
    double total;
    

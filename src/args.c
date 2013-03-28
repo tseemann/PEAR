@@ -4,6 +4,8 @@
 #include <string.h>
 #include "args.h"
 
+extern void print_number (size_t x);
+
 /** @file args.c
     @brief Command-line arguments parsing
 
@@ -22,7 +24,7 @@ static struct option long_options[] =
    { "phred-base",        required_argument, NULL, 'b' },
    { "empirical-freqs",   no_argument,       NULL, 'e' },
    { "left-fastq",        required_argument, NULL, 'f' },
-   { "geometric-mean",    required_argument, NULL, 'g' },
+   { "test-method",       required_argument, NULL, 'g' },
    { "help",              no_argument,       NULL, 'h' },
    { "threads",           required_argument, NULL, 'j' },
    { "max-asm-length",    required_argument, NULL, 'm' },
@@ -324,11 +326,6 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
            }
           sw->memory *= x;
           if (!sw->memory) -- sw->memory;
-          #if defined(__LP64__) || defined(_LP64)
-          printf ("Memory: %lu\n", sw->memory);
-          #else
-          printf ("Memory: %u\n", sw->memory);
-          #endif
           break;
       }
    }

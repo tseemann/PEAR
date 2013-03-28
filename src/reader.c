@@ -75,19 +75,21 @@ struct block_t * sec_fwd, struct block_t * sec_rev)
 {
   size_t reads_count;
   size_t rawdata_size;
-  size_t used_mem;
-  size_t unused_mem;
   void * mem_start;
   void * dbmem;
   int i;
+  #ifdef __DEBUG__
+  size_t unused_mem;
+  size_t used_mem;
+  #endif
 
-  #ifdef PRINT_MEM
+  #ifdef __DEBUG__
   printf ("Mempooling...\n");
   #endif
 
   comp_mem (memsize / 4, &reads_count, &rawdata_size);
 
-  #ifdef PRINT_MEM
+  #ifdef __DEBUG__
   printf ("tm: %f\n", (double)memsize);
   printf ("Total memory: ");
   print_number(memsize);
@@ -95,38 +97,34 @@ struct block_t * sec_fwd, struct block_t * sec_rev)
   printf ("Total memory: %ld\n", memsize);
   #endif
 
-  #ifdef PRINT_MEM
+  #ifdef __DEBUG__
   printf ("Number of reads: ");
   print_number(reads_count);
   printf ("\n");
   #endif
 
-  #ifdef PRINT_MEM
+  #ifdef __DEBUG__
   printf ("Size of reads structure: ");
   print_number(reads_count * sizeof(struct read_t) + reads_count * sizeof(struct read_t *)); 
   printf ("\n");
   #endif
 
-  #ifdef PRINT_MEM
+  #ifdef __DEBUG__
   printf ("Size of block: ");
   print_number(rawdata_size);
   printf ("\n");
   #endif
 
-  #ifdef PRINT_MEM
+  #ifdef __DEBUG__
   printf ("Size of used memory: ");
-  #endif
   used_mem = 2 * (rawdata_size + reads_count * sizeof(struct read_t) + reads_count * sizeof(struct read_t *));
-  #ifdef PRINT_MEM
   print_number(used_mem);
   printf ("\n");
   #endif
 
-  #ifdef PRINT_MEM
+  #ifdef __DEBUG__
   printf ("Size of unused memory: ");
-  #endif
   unused_mem = memsize - used_mem;
-  #ifdef PRINT_MEM
   print_number(unused_mem);
   printf ("\n");
   #endif
@@ -155,9 +153,14 @@ struct block_t * sec_fwd, struct block_t * sec_rev)
      abort ();
    }
   #if defined(__LP64__) || defined(_LP64)
-  printf ("Allocating %lu bytes\n", memsize);
+  printf ("Allocating memory..................: ");
+  print_number(memsize);
+  printf (" bytes\n");
   #else
-  printf ("Allocating %u bytes\n", memsize);
+  printf ("Allocating memory..................: ");
+  print_number(memsize);
+  printf (" bytes\n");
+  //printf ("Allocating %u bytes\n", print_number(memsize));
   #endif
 
 
@@ -212,7 +215,7 @@ struct block_t * sec_fwd, struct block_t * sec_rev)
 
   sec_fwd->unread = sec_rev->unread = NULL;
   
-  #ifdef PRINT_MEM
+  #ifdef __DEBUG__
   printf ("\n");
   #endif
 }
@@ -223,55 +226,53 @@ init_fastq_reader (const char * file1, const char * file2, size_t memsize, struc
 {
   size_t reads_count;
   size_t rawdata_size;
-  size_t used_mem;
-  size_t unused_mem;
   void * mem_start;
   int i;
+  #ifdef __DEBUG__
+  size_t used_mem;
+  size_t unused_mem;
+  #endif
 
-  #ifdef PRINT_MEM
+  #ifdef __DEBUG__
   printf ("Mempooling...\n");
   #endif
 
   comp_mem (memsize / 2, &reads_count, &rawdata_size);
 
-  #ifdef PRINT_MEM
+  #ifdef __DEBUG__
   printf ("Total memory: ");
   print_number(memsize);
   printf ("\n");
   #endif
 
-  #ifdef PRINT_MEM
+  #ifdef __DEBUG__
   printf ("Number of reads: ");
   print_number(reads_count);
   printf ("\n");
   #endif
 
-  #ifdef PRINT_MEM
+  #ifdef __DEBUG__
   printf ("Size of reads structure: ");
   print_number(reads_count * sizeof(struct read_t) + reads_count * sizeof(struct read_t *)); 
   printf ("\n");
   #endif
 
-  #ifdef PRINT_MEM
+  #ifdef __DEBUG__
   printf ("Size of block: ");
   print_number(rawdata_size);
   printf ("\n");
   #endif
 
-  #ifdef PRINT_MEM
+  #ifdef __DEBUG__
   printf ("Size of used memory: ");
-  #endif
   used_mem = 2 * (rawdata_size + reads_count * sizeof(struct read_t) + reads_count * sizeof(struct read_t *));
-  #ifdef PRINT_MEM
   print_number(used_mem);
   printf ("\n");
   #endif
 
-  #ifdef PRINT_MEM
+  #ifdef __DEBUG__
   printf ("Size of unused memory: ");
-  #endif
   unused_mem = memsize - used_mem;
-  #ifdef PRINT_MEM
   print_number(unused_mem);
   printf ("\n");
   #endif
@@ -312,7 +313,7 @@ init_fastq_reader (const char * file1, const char * file2, size_t memsize, struc
 
 
 
-  #ifdef PRINT_MEM
+  #ifdef __DEBUG__
   printf ("\n");
   #endif
 

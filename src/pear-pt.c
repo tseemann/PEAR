@@ -17,8 +17,11 @@
 
 static pthread_mutex_t cs_mutex_wnd  = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t cs_mutex_io   = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t cs_mutex_out  = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t  cs_mutex_cond = PTHREAD_COND_INITIALIZER;
+
+#ifdef __DEBUG__
+static pthread_mutex_t cs_mutex_out  = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 struct thread_global_t thr_global;
 
@@ -1721,6 +1724,7 @@ void * entry_point_ef (void * data)
      if (thr_local->block == thr_global.xblock && thr_global.io_thread == thr_local->id)
       {
         pthread_mutex_lock (&cs_mutex_io);
+        fprintf (stdout, "."); fflush (stdout);
         write_data (thr_global.xblock->fwd->reads, thr_global.xblock->rev->reads, thr_global.xblock->reads, thr_global.fd);
         // TODO: read_data ();
         elms = db_get_next_reads (thr_global.xblock->fwd, 
@@ -1738,7 +1742,7 @@ void * entry_point_ef (void * data)
         if (!elms) thr_global.finish  =  1;
         flip_list ();
 
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            pthread_mutex_lock (&cs_mutex_out);
            printf ("READ %d elms\n", elms);
            printf ("WAKE_UP_ALL!    (reads: %d processed: %d)\n", thr_global.xblock->reads, thr_global.xblock->processed);
@@ -1766,7 +1770,7 @@ void * entry_point_ef (void * data)
         /* is this the last thread using the current buffer? */
         if (thr_global.xblock->threads == 0 && thr_global.io_thread == -1)
          {
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            pthread_mutex_lock (&cs_mutex_out);
            printf ("ASSIGNED IO THREAD %d\n", thr_local->id);
            pthread_mutex_unlock (&cs_mutex_out);
@@ -1778,7 +1782,7 @@ void * entry_point_ef (void * data)
         else
          {
            if (assign_reads (thr_global.yblock, thr_local)) sleep = 0;
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            if (!sleep) {
            pthread_mutex_lock (&cs_mutex_out);
            printf ("ASSIGNED y READS to %d   (%d - %d)  Threads: %d\n", thr_local->id, thr_local->start, thr_local->end, thr_global.yblock->threads);
@@ -1789,7 +1793,7 @@ void * entry_point_ef (void * data)
      else
       {
         if (assign_reads (thr_global.xblock,thr_local)) sleep = 0;
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            if (!sleep) {
            pthread_mutex_lock (&cs_mutex_out);
            printf ("ASSIGNED x READS to %d  (%d - %d)   Threads: %d\n", thr_local->id, thr_local->start, thr_local->end, thr_global.xblock->threads);
@@ -1798,13 +1802,13 @@ void * entry_point_ef (void * data)
       }
      if (sleep)
       {
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            pthread_mutex_lock (&cs_mutex_out);
            printf ("Sleeping %d\n", thr_local->id);
            pthread_mutex_unlock (&cs_mutex_out);
            #endif
         pthread_cond_wait (&cs_mutex_cond, &cs_mutex_wnd);
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            pthread_mutex_lock (&cs_mutex_out);
            printf ("WAKING %d\n", thr_local->id);
            pthread_mutex_unlock (&cs_mutex_out);
@@ -1843,7 +1847,7 @@ void * entry_point_ef (void * data)
 
         pthread_mutex_lock (&cs_mutex_wnd);
           -- thr_local->block->threads;
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            pthread_mutex_lock (&cs_mutex_out);
            printf ("Finished %d  (Remaining threads: %d)\n", thr_local->id, thr_local->block->threads);
            pthread_mutex_unlock (&cs_mutex_out);
@@ -1872,6 +1876,7 @@ void * entry_point (void * data)
      if (thr_local->block == thr_global.xblock && thr_global.io_thread == thr_local->id)
       {
         pthread_mutex_lock (&cs_mutex_io);
+        fprintf (stdout, "."); fflush (stdout);
         write_data (thr_global.xblock->fwd->reads, thr_global.xblock->rev->reads, thr_global.xblock->reads, thr_global.fd);
         // TODO: read_data ();
         elms = db_get_next_reads (thr_global.xblock->fwd, 
@@ -1889,7 +1894,7 @@ void * entry_point (void * data)
         if (!elms) thr_global.finish  =  1;
         flip_list ();
 
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            pthread_mutex_lock (&cs_mutex_out);
            printf ("READ %d elms\n", elms);
            printf ("WAKE_UP_ALL!    (reads: %d processed: %d)\n", thr_global.xblock->reads, thr_global.xblock->processed);
@@ -1917,7 +1922,7 @@ void * entry_point (void * data)
         /* is this the last thread using the current buffer? */
         if (thr_global.xblock->threads == 0 && thr_global.io_thread == -1)
          {
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            pthread_mutex_lock (&cs_mutex_out);
            printf ("ASSIGNED IO THREAD %d\n", thr_local->id);
            pthread_mutex_unlock (&cs_mutex_out);
@@ -1929,7 +1934,7 @@ void * entry_point (void * data)
         else
          {
            if (assign_reads (thr_global.yblock, thr_local)) sleep = 0;
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            if (!sleep) {
            pthread_mutex_lock (&cs_mutex_out);
            printf ("ASSIGNED y READS to %d   (%d - %d)  Threads: %d\n", thr_local->id, thr_local->start, thr_local->end, thr_global.yblock->threads);
@@ -1940,7 +1945,7 @@ void * entry_point (void * data)
      else
       {
         if (assign_reads (thr_global.xblock,thr_local)) sleep = 0;
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            if (!sleep) {
            pthread_mutex_lock (&cs_mutex_out);
            printf ("ASSIGNED x READS to %d  (%d - %d)   Threads: %d\n", thr_local->id, thr_local->start, thr_local->end, thr_global.xblock->threads);
@@ -1949,13 +1954,13 @@ void * entry_point (void * data)
       }
      if (sleep)
       {
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            pthread_mutex_lock (&cs_mutex_out);
            printf ("Sleeping %d\n", thr_local->id);
            pthread_mutex_unlock (&cs_mutex_out);
            #endif
         pthread_cond_wait (&cs_mutex_cond, &cs_mutex_wnd);
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            pthread_mutex_lock (&cs_mutex_out);
            printf ("WAKING %d\n", thr_local->id);
            pthread_mutex_unlock (&cs_mutex_out);
@@ -1994,7 +1999,7 @@ void * entry_point (void * data)
 
         pthread_mutex_lock (&cs_mutex_wnd);
           -- thr_local->block->threads;
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            pthread_mutex_lock (&cs_mutex_out);
            printf ("Finished %d  (Remaining threads: %d)\n", thr_local->id, thr_local->block->threads);
            pthread_mutex_unlock (&cs_mutex_out);
@@ -2108,7 +2113,7 @@ void * emp_entry_point (void * data)
         if (!elms) thr_global.finish  =  1;
         flip_list ();
 
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            pthread_mutex_lock (&cs_mutex_out);
            printf ("READ %d elms\n", elms);
            printf ("WAKE_UP_ALL!    (reads: %d processed: %d)\n", thr_global.xblock->reads, thr_global.xblock->processed);
@@ -2143,7 +2148,7 @@ void * emp_entry_point (void * data)
         /* is this the last thread using the current buffer? */
         if (thr_global.xblock->threads == 0 && thr_global.io_thread == -1)
          {
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            pthread_mutex_lock (&cs_mutex_out);
            printf ("ASSIGNED IO THREAD %d\n", thr_local->id);
            pthread_mutex_unlock (&cs_mutex_out);
@@ -2155,7 +2160,7 @@ void * emp_entry_point (void * data)
         else
          {
            if (assign_reads (thr_global.yblock, thr_local)) sleep = 0;
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            if (!sleep) {
            pthread_mutex_lock (&cs_mutex_out);
            printf ("ASSIGNED y READS to %d   (%d - %d)  Threads: %d\n", thr_local->id, thr_local->start, thr_local->end, thr_global.yblock->threads);
@@ -2166,7 +2171,7 @@ void * emp_entry_point (void * data)
      else
       {
         if (assign_reads (thr_global.xblock,thr_local)) sleep = 0;
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            if (!sleep) {
            pthread_mutex_lock (&cs_mutex_out);
            printf ("ASSIGNED x READS to %d  (%d - %d)   Threads: %d\n", thr_local->id, thr_local->start, thr_local->end, thr_global.xblock->threads);
@@ -2175,13 +2180,13 @@ void * emp_entry_point (void * data)
       }
      if (sleep)
       {
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            pthread_mutex_lock (&cs_mutex_out);
            printf ("Sleeping %d\n", thr_local->id);
            pthread_mutex_unlock (&cs_mutex_out);
            #endif
         pthread_cond_wait (&cs_mutex_cond, &cs_mutex_wnd);
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            pthread_mutex_lock (&cs_mutex_out);
            printf ("WAKING %d\n", thr_local->id);
            pthread_mutex_unlock (&cs_mutex_out);
@@ -2218,6 +2223,11 @@ void * emp_entry_point (void * data)
                       ++ ef->freqg;
                       break;
 
+                    case 'N':
+                    case 'n':
+                      ++ ef->freqn;
+                      break;
+
                     case 'T':
                     case 't':
                       ++ ef->freqt;
@@ -2230,7 +2240,7 @@ void * emp_entry_point (void * data)
 
         pthread_mutex_lock (&cs_mutex_wnd);
           -- thr_local->block->threads;
-           #ifdef PRINT_DEBUG
+           #ifdef __DEBUG__
            pthread_mutex_lock (&cs_mutex_out);
            printf ("Finished %d  (Remaining threads: %d)\n", thr_local->id, thr_local->block->threads);
            pthread_mutex_unlock (&cs_mutex_out);
@@ -2248,6 +2258,44 @@ void * emp_entry_point (void * data)
   return (ef);
 }
 
+void
+DisplayInstance (struct user_args * sw)
+{
+  fprintf (stdout, " ____  _____    _    ____ \n"); 
+  fprintf (stdout, "|  _ \\| ____|  / \\  |  _ \\\n");
+  fprintf (stdout, "| |_) |  _|   / _ \\ | |_) |\n");
+  fprintf (stdout, "|  __/| |___ / ___ \\|  _ <\n");
+  fprintf (stdout, "|_|   |_____/_/   \\_\\_| \\_\\\n\n");
+  fprintf (stdout, "Forward reads file.................: %s\n", sw->fastq_left);
+  fprintf (stdout, "Reverse reads file.................: %s\n", sw->fastq_right);
+  fprintf (stdout, "PHRED..............................: %d\n", sw->phred_base);
+  fprintf (stdout, "Using empirical frequencies........: %s\n", sw->emp_freqs ? "YES" : "NO");
+  fprintf (stdout, "Statistical method.................: %s\n", (sw->test - 1) ? "Acceptance probability" : "OES");
+  fprintf (stdout, "Maximum assembly length............: %d\n", sw->max_asm_len);
+  fprintf (stdout, "Minimum assembly length............: %d\n", sw->min_asm_len);
+  fprintf (stdout, "p-value............................: %f\n", sw->p_value);
+  fprintf (stdout, "Quality score threshold (trimming).: %d\n", sw->qual_thres);
+  fprintf (stdout, "Minimum read size fter trimming....: %d\n", sw->min_trim_len);
+  fprintf (stdout, "Minimum read size fter trimming....: %d\n", sw->min_trim_len);
+  fprintf (stdout, "Maximal ratio of uncalled bases....: %f\n", sw->max_uncalled);
+  fprintf (stdout, "Minimum overlap....................: %d\n", sw->min_overlap);
+  fprintf (stdout, "Scoring method.....................: ");
+  if  (sw->score_method == 1)
+   {
+     fprintf (stdout, "OES with match = +1 and mismatch = -1\n");
+   }
+  else if (sw->score_method == 2)
+   {
+     fprintf (stdout, "Scaled score\n");
+   }
+  else
+   {
+     fprintf (stdout, "Ignore quality scores, match = +1 and mismatch = -1\n");
+   }
+  fprintf (stdout, "Threads............................: %d\n\n", sw->threads);
+
+
+}
 
 int 
 main (int argc, char * argv[])
@@ -2256,7 +2304,7 @@ main (int argc, char * argv[])
   struct user_args      sw;
   struct emp_freq * ef;
   struct thread_local_t * thr_data;
-  int a, c, g, t;
+  int a, c, g, t, n;
   pthread_t * tid;
   unsigned int elms;
 
@@ -2268,7 +2316,8 @@ main (int argc, char * argv[])
      return (EXIT_FAILURE);
    }
 
-  a = c = g = t = 0;
+  DisplayInstance (&sw);
+  a = c = g = t = n = 0;
   init_thr_global ();
   thr_data = (struct thread_local_t *) calloc (sw.threads, sizeof (struct thread_local_t));
   tid      = (pthread_t *) malloc (sw.threads * sizeof (pthread_t));
@@ -2285,7 +2334,7 @@ main (int argc, char * argv[])
 
   if (sw.emp_freqs)
    {
-     
+     printf ("Computing empirical frequencies....: ");
      elms = db_get_next_reads (thr_global.yblock->fwd, 
                                thr_global.yblock->rev,
                                thr_global.xblock->fwd,
@@ -2308,16 +2357,18 @@ main (int argc, char * argv[])
      for (i = 0; i < sw.threads; ++ i)
       {
          pthread_join (tid[i], (void **)&ef);
-         a += ef->freqa; c += ef->freqc; g += ef->freqg; t += ef->freqt;
+         a += ef->freqa; c += ef->freqc; g += ef->freqg; t += ef->freqt; n += ef->freqn;
          free (ef);
 //         printf ("tid: %d ef->a: %d ef->c: %d ef->g: %d ef->t: %d\n", (int)tid[i], ef->freqa, ef->freqc, ef->freqg, ef->freqt);
       }
      ef = (struct emp_freq *)malloc (sizeof(struct emp_freq));
-     ef->freqa = a; ef->freqc = c; ef->freqg = g; ef->freqt = t;
+     ef->freqa = a; ef->freqc = c; ef->freqg = g; ef->freqt = t; ef->freqn = n;
      ef->total = a + c + g + t;
      ef->pa = ef->freqa / ef->total; ef->pc = ef->freqc / ef->total; ef->pg = ef->freqg / ef->total; ef->pt = ef->freqt / ef->total;
      ef->q  = ef->pa * ef->pa + ef->pc * ef->pc + ef->pg * ef->pg + ef->pt * ef->pt;
-     printf ("a: %f c: %f g: %f t: %f\n", ef->pa, ef->pc, ef->pg, ef->pt);
+     printf ("DONE\n");
+     printf ("  A: %f\n  C: %f\n  G: %f\n  T: %f\n", ef->pa, ef->pc, ef->pg, ef->pt);
+     printf ("  %d uncalled bases\n", ef->freqn);
   rewind_files ();
   thr_global.xblock->fwd->unread = thr_global.xblock->rev->unread = NULL;
   thr_global.yblock->fwd->unread = thr_global.yblock->rev->unread = NULL;
@@ -2348,6 +2399,9 @@ main (int argc, char * argv[])
 
   init_scores(match_score, mismatch_score, ef);
 
+  fprintf (stdout, "Assemblying reads..................: [");
+  fflush (stdout);
+
   elms = db_get_next_reads (thr_global.yblock->fwd, 
                             thr_global.yblock->rev,
                             thr_global.xblock->fwd,
@@ -2377,6 +2431,12 @@ main (int argc, char * argv[])
    {
      pthread_join (tid[i], NULL);
    }
+  printf ("]\n\n");
+
+  printf ("Assembled reads file...............: %s%s\n", sw.outfile, ".assembled.fastq");
+  printf ("Discarded reads file...............: %s%s\n", sw.outfile, ".discarded.fastq");
+  printf ("Unassembled forward reads file.....: %s%s\n", sw.outfile, ".unassembled.forward.fastq");
+  printf ("Unassembled reverse reads file.....: %s%s\n", sw.outfile, ".unassembled.reverse.fastq" );
 
   free (ef);
   free (tid);
