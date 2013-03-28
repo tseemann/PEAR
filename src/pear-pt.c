@@ -44,16 +44,9 @@ double     sc_eqT[256][256];
 double   sc_neqAC[256][256];
 double   sc_neqAG[256][256];
 double   sc_neqAT[256][256];
-//double   sc_neqCA[256][256];
 double   sc_neqCG[256][256];
 double   sc_neqCT[256][256];
-//double   sc_neqGA[256][256];
-//double   sc_neqGC[256][256];
 double   sc_neqGT[256][256];
-//double   sc_neqTA[256][256];
-//double   sc_neqTC[256][256];
-//double   sc_neqTG[256][256];
-//double     qs_mul[256][256];
 
 int match_score    = 1;
 int mismatch_score = 1;
