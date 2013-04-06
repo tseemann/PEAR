@@ -22,7 +22,7 @@ struct read_t
 
 /** @brief A block representing a memory window of the read files
     
-    Consists of six elements. \a Reads is the memory space for the
+    Consists of six elements. \a reads is the memory space for the
     \a read_t pointers, \a rawdata is the raw data read from the file,
     \a rawdata_end points to the memory cell after the last read byte,
     \a rawdata_size is the number of bytes read and \a max_reads_count
