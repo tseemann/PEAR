@@ -66,11 +66,11 @@ struct thread_local_t
    struct blockinfo_t * block; /**< @brief Block on which the current thread operates */
    struct user_args * sw;      /**< @brief Parsed command-line arguments */
    int id;                     /**< @brief Thread id */
-   unsigned int start;         /**< Number of the first read to be processed by current thread */
-   unsigned int end;           /**< Number of the last read to be processed by current thread */
-   int match_score;            /**< Match score */
-   int mismatch_score;         /**< Mismatch score */
-   struct emp_freq * ef;       /**< Empirical frequencies */
+   unsigned int start;         /**< @brief Number of the first read to be processed by current thread */
+   unsigned int end;           /**< @brief Number of the last read to be processed by current thread */
+   int match_score;            /**< @brief Match score */
+   int mismatch_score;         /**< @brief Mismatch score */
+   struct emp_freq * ef;       /**< @brief Empirical frequencies */
  };
 
 #endif
