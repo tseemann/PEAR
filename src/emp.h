@@ -1,8 +1,6 @@
 #ifndef EMP_H
 #define EMP_H
 
-#include "fastq.h"
-
 /** @file emp.h
     @brief Header file for empirical frequencies computation
 
@@ -23,7 +21,7 @@ struct emp_freq
    int freqt;   /**< @brief Frequency of T */
    int freqn;   /**< @brief Frequency of N */
 
-   double total /**< @brief \a freqa + \a freqc + \a freqg + \a freqt */
+   double total; /**< @brief \a freqa + \a freqc + \a freqg + \a freqt */
    
    double pa;   /**< @brief \a freqa / total */
    double pc;   /**< @brief \a freqc / total */
@@ -32,7 +30,5 @@ struct emp_freq
 
    double q;    /**< @brief \a freqa * \a freqa + \a freqc * \a freqc + \a freqg * \a freqg + \a freqt * \a freqt */
  };
-
-struct emp_freq * get_emp_freq (int nReads, int Len, struct reads_info ** ri_left, struct reads_info ** ri_right);
 
 #endif
