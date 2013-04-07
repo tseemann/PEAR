@@ -147,7 +147,7 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
   sw->p_value       =      0.01;
   sw->geom_mean     =         0;
   sw->min_trim_len  =         1;
-  sw->score_method  =         1;
+  sw->score_method  =         2;
   sw->test          =         1;
   sw->memory        = 200000000;
   sw->threads       =         1;
