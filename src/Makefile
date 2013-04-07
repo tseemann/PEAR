@@ -1,27 +1,23 @@
+CC     = gcc
+CFLAGS = -Wall -fopenmp -fomit-frame-pointer -O3 -lm -march=native
 all: pear
 
-pear: pear.o args.o emp.c statistics.o reader.o  # fastq.o
-	gcc -g -Wall -fopenmp -fomit-frame-pointer -O2 $+ -lm -o $@
+pear: pear-pt.o args.o statistics.o reader.o  # fastq.o
+	$(CC) $(CFLAGS) $+ -lm -o $@
 
-pear.o: pear.c
-	gcc -g -c -Wall -fopenmp -fomit-frame-pointer -O2 $+ -lm -o $@
-
-fastq.o: fastq.c
-	gcc -g -c -Wall -fopenmp -fomit-frame-pointer -lm -O2 $+ -o $@
+pear-pt.o: pear-pt.c
+	$(CC) -c $(CFLAGS) $+ -o $@
 
 args.o: args.c
-	gcc -g -c -Wall -fopenmp -fomit-frame-pointer -lm -O2 $+ -o $@
-
-emp.o: emp.c
-	gcc -g -c -Wall -fopenmp -fomit-frame-pointer -lm -O2 $+ -o $@
+	$(CC) -c $(CFLAGS) $+ -o $@
 
 statistics.o: statistics.c
-	gcc -g -c -Wall -fopenmp -fomit-frame-pointer -lm -O2 $+ -o $@
+	$(CC) -c $(CFLAGS) $+ -o $@
 
 reader.o: reader.c
-	gcc -g -c -Wall -fopenmp -fomit-frame-pointer -lm -O2 $+ -o $@
+	$(CC) -c $(CFLAGS) $+ -o $@
 
 clean:
-	-rm pear pear.o fastq.o args.o statistics.o
+	-rm pear pear-pt.o args.o statistics.o reader.o
 
 .PHONY: all clean
