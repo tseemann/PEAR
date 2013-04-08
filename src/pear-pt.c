@@ -1618,15 +1618,20 @@ void * entry_point_ef (void * data)
       {
         if (thr_global.finish)
          {
-           pthread_mutex_unlock (&cs_mutex_wnd);
            if (!thr_global.xblock->threads)
             {
+              thr_global.xblock->threads = 1;
+              pthread_mutex_unlock (&cs_mutex_wnd);
+//              printf ("!!!!!!!!!! reads: %d processed: %d\n", thr_global.xblock->reads, thr_global.xblock->processed);
+//              printf ("!!!!!!!!!! Writing another %d reads\n", thr_global.xblock->reads);
               write_data (thr_global.xblock->fwd->reads, thr_global.xblock->rev->reads, thr_global.xblock->reads, thr_global.fd);
+//              printf ("Finsihed\n");
             }
+           pthread_mutex_unlock (&cs_mutex_wnd);
            break;
          }
         /* is this the last thread using the current buffer? */
-        if (thr_global.xblock->threads == 0 && thr_global.io_thread == -1)
+        if (thr_global.xblock->threads == 0 && thr_global.io_thread == -1 && thr_global.finish == 0)
          {
            #ifdef __DEBUG__
            pthread_mutex_lock (&cs_mutex_out);
@@ -1719,8 +1724,7 @@ void * entry_point_ef (void * data)
   return (NULL);
 }
 void * entry_point (void * data)
-{
-  struct thread_local_t * thr_local;
+{  struct thread_local_t * thr_local;
   int ass, i, sleep, elms;
   double                uncalled_forward, uncalled_reverse;
 
@@ -1770,11 +1774,13 @@ void * entry_point (void * data)
       {
         if (thr_global.finish)
          {
-           pthread_mutex_unlock (&cs_mutex_wnd);
            if (!thr_global.xblock->threads)
             {
+              thr_global.xblock->threads = 1;
+              pthread_mutex_unlock (&cs_mutex_wnd);
               write_data (thr_global.xblock->fwd->reads, thr_global.xblock->rev->reads, thr_global.xblock->reads, thr_global.fd);
             }
+           pthread_mutex_unlock (&cs_mutex_wnd);
            break;
          }
         /* is this the last thread using the current buffer? */

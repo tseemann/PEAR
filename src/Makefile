@@ -1,9 +1,9 @@
 CC     = gcc
-CFLAGS = -Wall -fopenmp -fomit-frame-pointer -O3 -lm -march=native
+CFLAGS = -Wall -fomit-frame-pointer -O3 -lm -march=native
 all: pear
 
 pear: pear-pt.o args.o statistics.o reader.o  # fastq.o
-	$(CC) $(CFLAGS) $+ -lm -o $@
+	$(CC) $(CFLAGS) $+ -lm -lpthread -o $@
 
 pear-pt.o: pear-pt.c
 	$(CC) -c $(CFLAGS) $+ -o $@

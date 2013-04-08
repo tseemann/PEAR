@@ -437,131 +437,34 @@ int db_read_fastq_block (struct block_t * block, FILE * fp, struct block_t * old
   
   /* TODO: Check this line again for correctness */
   nBytes = fread (block->rawdata + remainder, sizeof (char), block->rawdata_size - remainder, fp);
-  if (!nBytes)
+  if (!nBytes && !remainder)
    {
+ //    if (remainder) printf ("REMAINDER Exists\n"); else printf ("No remainder\n");
 //     fprintf (stderr, "Finished reading (0 bytes)?\n");
      return (0);
    }
   else if (nBytes < block->rawdata_size - remainder)
    {
      block->rawdata[nBytes + remainder] = '\0';
+
 //     fprintf (stderr, "Finished reading (less bytes)?\n");
      return (0);
    }
-
   return (1);
-}
-
-int read_fastq_block (struct block_t * block, FILE * fp)
-{
-  int nBytes;
-  size_t remainder;
-
-  /* TODO: check if something from the previous block exists */
-  /* check also if we do not have a large block that couldnt be read in one read */
-
-  /* Check if we do not have a large block that could not be read in one read */
-  if (block->unread == block->rawdata)
-   {
-     fprintf (stderr, "Error, too large read? Allocate more mem...");
-     abort ();
-   }
-
-  remainder    = 0;
-  if (block->unread && block->unread != block->rawdata_end && (*(block->unread)) )
-   {
-     remainder = (size_t) (block->rawdata_end - block->unread);
-     memmove (block->rawdata, block->unread, remainder); 
-   }
-  
-  /* TODO: Check this line again for correctness */
-  nBytes = fread (block->rawdata + remainder, sizeof (char), block->rawdata_size - remainder, fp);
-  if (!nBytes)
-   {
-//     fprintf (stderr, "Finished reading (0 bytes)?\n");
-     return (0);
-   }
-  else if (nBytes < block->rawdata_size - remainder)
-   {
-     block->rawdata[nBytes + remainder] = '\0';
-//     fprintf (stderr, "Finished reading (less bytes)?\n");
-     return (0);
-   }
-
-  return (1);
-}
-
-static inline void
-do_cpuid(uint32_t selector, uint32_t *data)
-{
-  asm("cpuid"
-      : "=a" (data[0]),
-      "=b" (data[1]),
-      "=c" (data[2]),
-      "=d" (data[3])
-      : "a"(selector));
-}
-
-void print_reads (struct read_t ** fwd, struct read_t ** rev, int elms)
-{
-  int i;
-
-  for (i = 0; i < elms; ++ i)
-   {
-      printf ("%s\n%s\n%s\n\n%s\n%s\n%s\n\n", fwd[i]->header, fwd[i]->data, fwd[i]->qscore, rev[i]->header, rev[i]->data, rev[i]->qscore);
-      ++rcount;
-   }
-}
-
-int get_next_reads (struct block_t * fwd_block, struct block_t * rev_block)
-{
-  int n1, n2;
-  int eof1 = 1, eof2 = 1;
-
-  if (eof1)  eof1 = read_fastq_block (fwd_block, fp1);
-  if (eof2)  eof2 = read_fastq_block (rev_block, fp2);
-  
-  n1 = parse_block (fwd_block);
-  n2 = parse_block (rev_block);
-
-//  printf ("Read %d and %d reads\n", n1, n2);
-  
-  /* align reads if different count selected */
-  if (n1 != n2)
-   {
-     if (!n1 || !n2)
-      {
-        fprintf (stderr, "Problem, number of reads does not match!\n");
-        abort();
-      }
-     if (n1 > n2)
-      {
-        fwd_block->unread = fwd_block->reads[n2]->header;
-        n1 = n2;
-      }
-     else
-      {
-        rev_block->unread = rev_block->reads[n1]->header;
-        n2 = n1;
-      }
-   }
-  
-  return (n1);
 }
 
 int db_get_next_reads (struct block_t * fwd_block, struct block_t * rev_block, struct block_t * old_fwd_block, struct block_t * old_rev_block)
 {
   int n1, n2;
 
-  if (!eof1 || !eof2) return (0);
+//  if (!eof1 || !eof2) return (0);
 
-  if (eof1)  eof1 = db_read_fastq_block (fwd_block, fp1, old_fwd_block);
-  if (eof2)  eof2 = db_read_fastq_block (rev_block, fp2, old_rev_block);
+  eof1 = db_read_fastq_block (fwd_block, fp1, old_fwd_block);
+  eof2 = db_read_fastq_block (rev_block, fp2, old_rev_block);
   
   n1 = parse_block (fwd_block);
   n2 = parse_block (rev_block);
   
-//  printf ("Read %d and %d reads\n", n1, n2);
   /* align reads if different count selected */
   if (n1 != n2)
    {
@@ -617,3 +520,102 @@ int main (int argc, char * argv[])
   return (0);
 }
 */
+
+int get_next_reads (struct block_t * fwd_block, struct block_t * rev_block)
+{
+  int n1, n2;
+  int eof1 = 1, eof2 = 1;
+
+  if (eof1)  eof1 = read_fastq_block (fwd_block, fp1);
+  if (eof2)  eof2 = read_fastq_block (rev_block, fp2);
+  
+  n1 = parse_block (fwd_block);
+  n2 = parse_block (rev_block);
+
+//  printf ("Read %d and %d reads\n", n1, n2);
+  
+  /* align reads if different count selected */
+  if (n1 != n2)
+   {
+     if (!n1 || !n2)
+      {
+        fprintf (stderr, "Problem, number of reads does not match!\n");
+        abort();
+      }
+     if (n1 > n2)
+      {
+        fwd_block->unread = fwd_block->reads[n2]->header;
+        n1 = n2;
+      }
+     else
+      {
+        rev_block->unread = rev_block->reads[n1]->header;
+        n2 = n1;
+      }
+   }
+  
+  return (n1);
+}
+
+
+void print_reads (struct read_t ** fwd, struct read_t ** rev, int elms)
+{
+  int i;
+
+  for (i = 0; i < elms; ++ i)
+   {
+      printf ("%s\n%s\n%s\n\n%s\n%s\n%s\n\n", fwd[i]->header, fwd[i]->data, fwd[i]->qscore, rev[i]->header, rev[i]->data, rev[i]->qscore);
+      ++rcount;
+   }
+}
+
+int read_fastq_block (struct block_t * block, FILE * fp)
+{
+  int nBytes;
+  size_t remainder;
+
+  /* TODO: check if something from the previous block exists */
+  /* check also if we do not have a large block that couldnt be read in one read */
+
+  /* Check if we do not have a large block that could not be read in one read */
+  if (block->unread == block->rawdata)
+   {
+     fprintf (stderr, "Error, too large read? Allocate more mem...");
+     abort ();
+   }
+
+  remainder    = 0;
+  if (block->unread && block->unread != block->rawdata_end && (*(block->unread)) )
+   {
+     remainder = (size_t) (block->rawdata_end - block->unread);
+     memmove (block->rawdata, block->unread, remainder); 
+   }
+  
+  /* TODO: Check this line again for correctness */
+  nBytes = fread (block->rawdata + remainder, sizeof (char), block->rawdata_size - remainder, fp);
+  if (!nBytes)
+   {
+//     fprintf (stderr, "Finished reading (0 bytes)?\n");
+     return (0);
+   }
+  else if (nBytes < block->rawdata_size - remainder)
+   {
+     block->rawdata[nBytes + remainder] = '\0';
+//     fprintf (stderr, "Finished reading (less bytes)?\n");
+     return (0);
+   }
+
+  return (1);
+}
+
+static inline void
+do_cpuid(uint32_t selector, uint32_t *data)
+{
+  asm("cpuid"
+      : "=a" (data[0]),
+      "=b" (data[1]),
+      "=c" (data[2]),
+      "=d" (data[3])
+      : "a"(selector));
+}
+
