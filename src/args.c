@@ -54,6 +54,7 @@ void usage (void)
   fprintf (stdout, "|_|   |_____/_/   \\_\\_| \\_\\\n");
   fprintf (stdout, "\n.oOo. Paired-End AssembleR .oOo.\n");
   fprintf (stdout, "PEAR v0.8 by Tomas Flouri and Jiajie Zhang\n");
+  fprintf (stdout, "License: Creative Commons license\n");
   fprintf (stdout, "Free for academic use, for commercial use or bug report, please contact:\n");
   fprintf (stdout, "flouris@gmail.com and bestzhangjiajie@gmail.com\n");
   fprintf (stdout, "\n\n"); 
@@ -70,11 +71,11 @@ void usage (void)
   fprintf (stdout, "  -v, --min-overlap           <int>     Minimum overlap (default: 10)\n"
                    "                                        If the statistical test is used, the min-overlap can in principal be set to 1,\n"
                    "                                        but in practice setting min-overlap to a proper value will further reduce\n"
-                   "                                        false-positive assemlies, since the data will not be perfect.\n"); 	
-  fprintf (stdout, "  -m, --max-assembly-length   <int>     Maximum possible size of the assembled sequence.\n");
+                   "                                        false-positive assemlies.\n"); 	
+  fprintf (stdout, "  -m, --max-assembly-length   <int>     Maximum possible length of the assembled sequence.\n");
   fprintf (stdout, "                                        The assembled sequence can be arbitrary long if set\n"
                    "                                        to 0. (default: 0)\n");
-  fprintf (stdout, "  -n, --min-assembly-length   <int>     Minimum possible size of the assembled sequence.\n");
+  fprintf (stdout, "  -n, --min-assembly-length   <int>     Minimum possible length of the assembled sequence.\n");
   fprintf (stdout, "                                        To disable it set to 0. (default: 50)\n");
   fprintf (stdout, "  -t, --min-trim-length       <int>     Minimum length of reads after trimming the low quality part. If two consecutive\n"
                    "                                        bases quality scores < q, the rest of the reads will be trimed (default: 1)\n");
@@ -89,7 +90,7 @@ void usage (void)
                    "                                           Note due to the discret nature of the test, it usually gives a lower p-value\n" 
                    "                                           for assembled sequences than the specified one. For example, set p-value = 0.05,\n" 
                    "                                           using this test, the assembled reads might have an actual p-value of 0.02.\n"
-                   "                                        2: Using the acceptance probability. \n"
+                   "                                        2: Using the acceptance probability (m.a.p). \n"
                    "                                           Test method 2 calculate the same probability as test1, but assumes the minimal overlap\n"
                    "                                           is the observed overlap who has the highest OES, instead of the minimum allowed overlap \n"
                    "                                           predefined as input parameter (-v). Therefore, it is not a valid statistical test, the \n"
@@ -97,12 +98,11 @@ void usage (void)
                    "                                           in practice, when the actual overlap sizes are small, test 2 can produce more correctly \n"
                    "                                           assembled sequences with only slightly higher false-positive rates.\n");
   fprintf (stdout, "  -e, --empirical-freqs                 Disable empirical base frequencies. (default: use empirical base frequencies)\n");
-  fprintf (stdout, "  -s, --score-method          <int>     Scoring method\n"
+  fprintf (stdout, "  -s, --score-method          <int>     Scoring method (default: 2)\n"
                    "                                        1: OES with +1 for match and -1 for mismatch.\n"
                    "                                        2: Scaled score, use the probobality of bases been correct or wrong to scale \n"
-                   "                                           the score in method 3 (both tests are invalid in use this method).\n"
-                   "                                        3: +1 for a match, -1 for a mismatch, ignoring the quality scores.\n"
-                   "                                        (both tests are invalid if use this method 2 or 3)(default: 1)\n"); 
+                   "                                           the score in method 3.\n"
+                   "                                        3: +1 for a match, -1 for a mismatch, ignoring the quality scores.\n");
   fprintf (stdout, "  -b, --phred-base            <int>     Base Phred quality score (default: 33)\n");
   fprintf (stdout, "  -y, --memory                <str>     Specify the amount of memory to be used. The number may be followed with one of\n"
                    "                                        the letters K, M, or G denoting Kilobytes, Megabytes and Gigabytes, respectively.\n"

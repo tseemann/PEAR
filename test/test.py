@@ -4,6 +4,7 @@ import glob
 import copy
 import math
 import random 
+import subprocess
 from subprocess import call
 
 def find_accuracy(fn_truth, fn_assemby, name, method = "panda", printnice = True):
@@ -38,6 +39,9 @@ def find_accuracy(fn_truth, fn_assemby, name, method = "panda", printnice = True
 				print(seqname)
 			elif method == "flash":
 				seqname = seqname[1:]
+			elif method == "cope":
+				#@cp0	EU861894-140/1_EU861894-140/2	28	172
+				seqname = seqname[1:].split()[1].split("/")[0]
 			else:
 				seqname = seqname[1:].split("/")[0]
 			seq = fin.readline().strip()
@@ -74,11 +78,11 @@ def find_accuracy(fn_truth, fn_assemby, name, method = "panda", printnice = True
 
 def test_pear(forward, reverse, output, pvalue, minoverlap, maxlen, minlen, mintrimlen, minquality, maxuncalled, scoremethod, empirical_freqs, truelenfile, testname, testw):
 	if empirical_freqs == "yes":
-                print "../src/pear" + " " + "-f" + " " + forward + " " + "-r" + " " + reverse + " " + "-o" + " " + output + " " + "-p" + " " + pvalue + " " + "-v" + " " + minoverlap + " " + "-m" + " " + maxlen + " " + "-n" + " " + minlen + " " + "-t" + " " + mintrimlen + " " + "-q" + " " + minquality + " " +  "-u" + " " + maxuncalled + " " + "-s" + " " + scoremethod + " " + "-j" + " " + "48" + " " + "-g" + " " + testw + " " + "-y" + " " + "200000000"
-		call(["../src/pear","-f",forward,"-r",reverse,"-o", output,"-p", pvalue, "-v", minoverlap, "-m", maxlen, "-n", minlen, "-t", mintrimlen, "-q", minquality, "-u", maxuncalled, "-s", scoremethod, "-j", "48", "-g", testw, "-y", "200000000" ])
+		#print "../src/pear" + " " + "-f" + " " + forward + " " + "-r" + " " + reverse + " " + "-o" + " " + output + " " + "-p" + " " + pvalue + " " + "-v" + " " + minoverlap + " " + "-m" + " " + maxlen + " " + "-n" + " " + minlen + " " + "-t" + " " + mintrimlen + " " + "-q" + " " + minquality + " " +  "-u" + " " + maxuncalled + " " + "-s" + " " + scoremethod + " " + "-j" + " " + "2" + " " + "-g" + " " + testw + " " + "-y" + " " + "200000000"
+		call(["../src/pear","-f",forward,"-r",reverse,"-o", output,"-p", pvalue, "-v", minoverlap, "-m", maxlen, "-n", minlen, "-t", mintrimlen, "-q", minquality, "-u", maxuncalled, "-s", scoremethod, "-j", "2", "-g", testw, "-y", "200000000" ], stdout=open(os.devnull, "w"), stderr=subprocess.STDOUT)
 	else:
-                print "../src/pear" + "-f" + forward + "-r" + reverse + "-o" + output + "-p" + pvalue + "-v" + minoverlap + "-m" + maxlen + "-n" + minlen + "-t" + mintrimlen + "-q", minquality +  "-u", maxuncalled + "-s" + scoremethod + "-j" + "48" + "-g" + testw + "-y" + "200000000 -e"
-		call(["../src/pear","-f",forward,"-r",reverse,"-o", output,"-p", pvalue, "-v", minoverlap, "-m", maxlen, "-n", minlen, "-t", mintrimlen, "-q", minquality, "-u", maxuncalled, "-s", scoremethod, "-j", "48", "-g", testw, "-y", "200000000", "-e"])
+		#print "../src/pear" + "-f" + forward + "-r" + reverse + "-o" + output + "-p" + pvalue + "-v" + minoverlap + "-m" + maxlen + "-n" + minlen + "-t" + mintrimlen + "-q", minquality +  "-u", maxuncalled + "-s" + scoremethod + "-j" + "2" + "-g" + testw + "-y" + "200000000 -e"
+		call(["../src/pear","-f",forward,"-r",reverse,"-o", output,"-p", pvalue, "-v", minoverlap, "-m", maxlen, "-n", minlen, "-t", mintrimlen, "-q", minquality, "-u", maxuncalled, "-s", scoremethod, "-j", "2", "-g", testw, "-y", "200000000", "-e"], stdout=open(os.devnull, "w"), stderr=subprocess.STDOUT)
 	return find_accuracy(fn_truth = truelenfile, fn_assemby = output+".assembled.fastq", name = testname, method = "pear", printnice = False)
 
 def publication_data():
@@ -93,7 +97,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_101bp_len.txt", 
 						  testname = "101bpt_nt",
@@ -108,7 +112,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_101bp_len.txt", 
 						  testname = "101bpt_t01",
@@ -123,7 +127,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_101bp_len.txt", 
 						  testname = "101bpt_t2_01",
@@ -138,7 +142,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_101bp_len.txt", 
 						  testname = "101bp_nt",
@@ -153,7 +157,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_101bp_len.txt", 
 						  testname = "101bp_t01",
@@ -168,7 +172,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_101bp_len.txt", 
 						  testname = "101bp_t2_01",
@@ -183,7 +187,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_150bp_len.txt", 
 						  testname = "150bp_nt",
@@ -198,7 +202,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_150bp_len.txt", 
 						  testname = "150bp_t01",
@@ -213,7 +217,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_150bp_len.txt", 
 						  testname = "150bp_t2_01",
@@ -228,7 +232,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_165bp_len.txt", 
 						  testname = "165bp_nt",
@@ -243,7 +247,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_165bp_len.txt", 
 						  testname = "165bp_t01",
@@ -258,7 +262,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_165bp_len.txt", 
 						  testname = "165bp_t2_01",
@@ -273,7 +277,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_180bp_len.txt", 
 						  testname = "180bp_nt",
@@ -288,7 +292,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_180bp_len.txt", 
 						  testname = "180bp_t01",
@@ -303,7 +307,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_180bp_len.txt", 
 						  testname = "180bp_t2_01",
@@ -318,7 +322,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_190bp_len.txt", 
 						  testname = "190bp_nt",
@@ -333,7 +337,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_190bp_len.txt", 
 						  testname = "190bp_t01",
@@ -348,7 +352,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_190bp_len.txt", 
 						  testname = "190bp_t2_01",
@@ -363,7 +367,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_250bp_len.txt", 
 						  testname = "250bp_nt",
@@ -378,7 +382,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_250bp_len.txt", 
 						  testname = "250bp_t01",
@@ -393,7 +397,7 @@ def publication_data():
 						  mintrimlen = "50", 
 						  minquality = "0", 
 						  maxuncalled = "1", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_250bp_len.txt", 
 						  testname = "250bp_t2_01",
@@ -402,28 +406,13 @@ def publication_data():
 	os.remove("to1.discarded.fastq")
 	os.remove("to1.unassembled.forward.fastq")
 	os.remove("to1.unassembled.reverse.fastq")
-						  
 
-
+def test_cope():
+	find_accuracy(fn_truth = "16S_101bp_len.txt", fn_assemby = "", name= "101bpt", method = "cope", printnice = True)
 
 def main():
 	#101bp through, should have corrected assembled sequences = 
 	print("Testname" + "	" +"Reads"+"	"+"Assembled"+"	"+"Correct"+"	"+"Correct/Reads"+"		" + "Correct/Assembled" + "	fp_rate")
-	num101bpt_nt = test_pear(forward = "16S_101bp1.fq.through.fastq", 
-						  reverse = "16S_101bp2.fq.through.fastq", 
-						  output = "to1", 
-						  pvalue = "1.0", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_101bp_len.txt", 
-						  testname = "101bpt_nt",
-						  testw = "1")
 	num101bpt_t1 = test_pear(forward = "16S_101bp1.fq.through.fastq", 
 						  reverse = "16S_101bp2.fq.through.fastq", 
 						  output = "to1", 
@@ -434,86 +423,11 @@ def main():
 						  mintrimlen = "50", 
 						  minquality = "10", 
 						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_101bp_len.txt", 
 						  testname = "101bpt_t1",
 						  testw = "1")
-	num101bpt_t2 = test_pear(forward = "16S_101bp1.fq.through.fastq", 
-						  reverse = "16S_101bp2.fq.through.fastq", 
-						  output = "to1", 
-						  pvalue = "0.01", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_101bp_len.txt", 
-						  testname = "101bpt_t2",
-						  testw = "2")
-	num101bpt_t1_ne = test_pear(forward = "16S_101bp1.fq.through.fastq", 
-						  reverse = "16S_101bp2.fq.through.fastq", 
-						  output = "to1", 
-						  pvalue = "0.01", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "no", 
-						  truelenfile = "16S_101bp_len.txt", 
-						  testname = "101bpt_t1_ne",
-						  testw = "1")
-	num101bp = test_pear(forward = "16S_101bp1.fq", 
-						  reverse = "16S_101bp2.fq", 
-						  output = "to1", 
-						  pvalue = "0.001", 
-						  minoverlap = "10", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_101bp_len.txt", 
-						  testname = "101bp_t2_001",
-						  testw = "2")
-	num150bp_nt = test_pear(forward = "16S_150bp1.fq", 
-						  reverse = "16S_150bp2.fq", 
-						  output = "to1", 
-						  pvalue = "1.0", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_150bp_len.txt", 
-						  testname = "150bp_nt",
-						  testw = "1")
-	num150bp_t1 = test_pear(forward = "16S_150bp1.fq", 
-						  reverse = "16S_150bp2.fq", 
-						  output = "to1", 
-						  pvalue = "0.01", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_150bp_len.txt", 
-						  testname = "150bp_t1",
-						  testw = "1")	
 	num150bp_t2 = test_pear(forward = "16S_150bp1.fq", 
 						  reverse = "16S_150bp2.fq", 
 						  output = "to1", 
@@ -524,55 +438,10 @@ def main():
 						  mintrimlen = "50", 
 						  minquality = "10", 
 						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_150bp_len.txt", 
 						  testname = "150bp_t2",
-						  testw = "2")	
-	num165bp_nt = test_pear(forward = "16S_165bp1.fq", 
-						  reverse = "16S_165bp2.fq", 
-						  output = "to1", 
-						  pvalue = "1.0", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_165bp_len.txt", 
-						  testname = "165bp_nt",
-						  testw = "1")
-	num165bp_t1 = test_pear(forward = "16S_165bp1.fq", 
-						  reverse = "16S_165bp2.fq", 
-						  output = "to1", 
-						  pvalue = "0.01", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_165bp_len.txt", 
-						  testname = "165bp_t1",
-						  testw = "1")	
-	num165bp_t2 = test_pear(forward = "16S_165bp1.fq", 
-						  reverse = "16S_165bp2.fq", 
-						  output = "to1", 
-						  pvalue = "0.01", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_165bp_len.txt", 
-						  testname = "165bp_t2",
 						  testw = "2")
 	num165bp_t1_o10 = test_pear(forward = "16S_165bp1.fq", 
 						  reverse = "16S_165bp2.fq", 
@@ -584,56 +453,13 @@ def main():
 						  mintrimlen = "50", 
 						  minquality = "10", 
 						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_165bp_len.txt", 
 						  testname = "165bp_t1_o10",
-						  testw = "1")	
-	num180bp_nt = test_pear(forward = "16S_180bp1.fq", 
-						  reverse = "16S_180bp2.fq", 
-						  output = "to1", 
-						  pvalue = "1.0", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_180bp_len.txt", 
-						  testname = "180bp_nt",
-						  testw = "1")	
-	num180bp_nt_m2 = test_pear(forward = "16S_180bp1.fq", 
-						  reverse = "16S_180bp2.fq", 
-						  output = "to1", 
-						  pvalue = "1.0", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "2", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_180bp_len.txt", 
-						  testname = "180bp_nt_m2",
 						  testw = "1")
-	num180bp_nt = test_pear(forward = "16S_180bp1.fq", 
-						  reverse = "16S_180bp2.fq", 
-						  output = "to1", 
-						  pvalue = "1.0", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "3", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_180bp_len.txt", 
-						  testname = "180bp_nt_m3",
-						  testw = "1")
+
+
 	num180bp_t1 = test_pear(forward = "16S_180bp1.fq", 
 						  reverse = "16S_180bp2.fq", 
 						  output = "to1", 
@@ -644,56 +470,12 @@ def main():
 						  mintrimlen = "50", 
 						  minquality = "10", 
 						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_180bp_len.txt", 
 						  testname = "180bp_t1",
 						  testw = "1")	
-	num180bp_t2 = test_pear(forward = "16S_180bp1.fq", 
-						  reverse = "16S_180bp2.fq", 
-						  output = "to1", 
-						  pvalue = "0.01", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_180bp_len.txt", 
-						  testname = "180bp_t2",
-						  testw = "2")	
-	num180bp_t1_o10 = test_pear(forward = "16S_180bp1.fq", 
-						  reverse = "16S_180bp2.fq", 
-						  output = "to1", 
-						  pvalue = "0.01", 
-						  minoverlap = "10", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_180bp_len.txt", 
-						  testname = "180bp_t1_o10",
-						  testw = "1")
-	num180bp_t1_05 = test_pear(forward = "16S_180bp1.fq", 
-						  reverse = "16S_180bp2.fq", 
-						  output = "to1", 
-						  pvalue = "0.05", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_180bp_len.txt", 
-						  testname = "180bp_t1_05",
-						  testw = "1")
+
 	num180bp_t1_001 = test_pear(forward = "16S_180bp1.fq", 
 						  reverse = "16S_180bp2.fq", 
 						  output = "to1", 
@@ -704,26 +486,12 @@ def main():
 						  mintrimlen = "50", 
 						  minquality = "10", 
 						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_180bp_len.txt", 
 						  testname = "180bp_t1_001",
 						  testw = "1")
-	num180bp_t1_05 = test_pear(forward = "16S_180bp1.fq", 
-						  reverse = "16S_180bp2.fq", 
-						  output = "to1", 
-						  pvalue = "0.05", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_180bp_len.txt", 
-						  testname = "180bp_t2_05",
-						  testw = "2")
+
 	num180bp_t2_001 = test_pear(forward = "16S_180bp1.fq", 
 						  reverse = "16S_180bp2.fq", 
 						  output = "to1", 
@@ -734,73 +502,12 @@ def main():
 						  mintrimlen = "50", 
 						  minquality = "10", 
 						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_180bp_len.txt", 
 						  testname = "180bp_t2_001",
 						  testw = "2")
-	num180bp_t1_m2 = test_pear(forward = "16S_180bp1.fq", 
-						  reverse = "16S_180bp2.fq", 
-						  output = "to1", 
-						  pvalue = "0.01", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "2", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_180bp_len.txt", 
-						  testname = "180bp_t1_m2",
-						  testw = "1")
-	
-	num180bp_t1_m3 = test_pear(forward = "16S_180bp1.fq", 
-						  reverse = "16S_180bp2.fq", 
-						  output = "to1", 
-						  pvalue = "0.01", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "3", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_180bp_len.txt", 
-						  testname = "180bp_t1_m3",
-						  testw = "1")
-						  
-	num190bp_t2 = test_pear(forward = "16S_190bp1.fq", 
-						  reverse = "16S_190bp2.fq", 
-						  output = "to1", 
-						  pvalue = "0.01", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_190bp_len.txt", 
-						  testname = "190bp_t1",
-						  testw = "1")	
-	num190bp_t2 = test_pear(forward = "16S_190bp1.fq", 
-						  reverse = "16S_190bp2.fq", 
-						  output = "to1", 
-						  pvalue = "0.01", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_190bp_len.txt", 
-						  testname = "190bp_t2",
-						  testw = "2")	
+
 	num190bp_nt = test_pear(forward = "16S_190bp1.fq", 
 						  reverse = "16S_190bp2.fq", 
 						  output = "to1", 
@@ -811,26 +518,11 @@ def main():
 						  mintrimlen = "50", 
 						  minquality = "10", 
 						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_190bp_len.txt", 
 						  testname = "190bp_nt",
-						  testw = "2")	
-	num250bp_t1 = test_pear(forward = "16S_250bp1.fq", 
-						  reverse = "16S_250bp2.fq", 
-						  output = "to1", 
-						  pvalue = "0.01", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_250bp_len.txt", 
-						  testname = "250bp_t1",
-						  testw = "1")	
+						  testw = "2")
 	num250bp_t2 = test_pear(forward = "16S_250bp1.fq", 
 						  reverse = "16S_250bp2.fq", 
 						  output = "to1", 
@@ -841,25 +533,10 @@ def main():
 						  mintrimlen = "50", 
 						  minquality = "10", 
 						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
+						  scoremethod = "2", 
 						  empirical_freqs = "yes", 
 						  truelenfile = "16S_250bp_len.txt", 
 						  testname = "250bp_t2",
-						  testw = "2")	
-	num250bp_nt = test_pear(forward = "16S_250bp1.fq", 
-						  reverse = "16S_250bp2.fq", 
-						  output = "to1", 
-						  pvalue = "1.0", 
-						  minoverlap = "1", 
-						  maxlen = "500", 
-						  minlen = "50", 
-						  mintrimlen = "50", 
-						  minquality = "10", 
-						  maxuncalled = "0.05", 
-						  scoremethod = "1", 
-						  empirical_freqs = "yes", 
-						  truelenfile = "16S_250bp_len.txt", 
-						  testname = "250bp_nt",
 						  testw = "2")
 		 
 	os.remove("to1.assembled.fastq")
@@ -868,18 +545,18 @@ def main():
 	os.remove("to1.unassembled.reverse.fastq")
 	
 	
-	if 	(num101bpt_t1 == 33023 and 
+	if 	(num101bpt_t1 == 33022 and 
 		num150bp_t2 == 28228 and 
-		num165bp_t1_o10 == 25821 and 
-		num180bp_t1 == 18118 and 
-		num180bp_t1_001 == 14680 and
+		num165bp_t1_o10 == 25817 and 
+		num180bp_t1 == 18115 and 
+		num180bp_t1_001 == 14679 and
 		num180bp_t2_001 == 15532 and 
-		num190bp_nt == 17075 and 
-		num250bp_t2 == 23060):
+		num190bp_nt == 17112 and 
+		num250bp_t2 == 23063):
 			print("Tests passed!")
 	else:
-		print("Warnning: tests failed!")				  
-	
+		print("Warnning: tests failed!") 
+
 
 main()
 #publication_data()

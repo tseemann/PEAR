@@ -6,6 +6,12 @@
  
 ....Paired-End AssembleR....
 
+Author: Tomas Flouri and Jiajie Zhang
+
+License: Creative Commons license
+                with
+Attribution-NonCommercial-ShareAlike 3.0 Unported
+
 Introduction:
 PEAR assembles the illumina paired-end reads if the DNA frament sizes 
 are smaller than twice of the read length. PEAR can assemble 95% of the 
@@ -14,9 +20,12 @@ works with the multiplexed data set where the true underlying DNA frament
 sizes varies. PEAR has an exremly low false-positive rate of 0.0003 on 
 data set where there are no overlaps between the two reads.
 
-PEAR is free for academic use, for commercial use or bug report, 
+PEAR is free for academic use, 
+you are free to make copy, modify and redistribute as long as you mention 
+the original PEAR work and for non-commercial purposes.
+ 
+For commercial use or bug report, 
 please contact: flouris@gmail.com and bestzhangjiajie@gmail.com
-     
 
 How to complie:
 1. Go to the src folder
@@ -38,10 +47,14 @@ a typical command to run PEAR would be:
 For further options, please type: ./pear -h  
 
 Important:
-1. The program does not check the paired-end reads names, the users 
+1. The input files must be in FASTQ format
+
+2. The program does not check the paired-end reads names, the users 
 should make sure the reads in both files are in the same flowcell 
 position if they are in the same line.
 
-How to cite:
+3. How to cite:
+T.B.C
 
-
+Website: http://exelixis-lab.org/pear
+Latest version: https://github.com/xflouris/PEAR
