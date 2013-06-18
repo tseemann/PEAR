@@ -64,49 +64,65 @@ void usage (void)
   fprintf (stdout, "  -r, --reverse-fastq         <str>     Reverse paired-end FASTQ file.\n");
   fprintf (stdout, "  -o, --output                <str>     Output filename.\n");
   fprintf (stdout, "Optional:\n");
-  fprintf (stdout, "  -p, --p-value               <float>   Use a p-value from the set { 1.0, 0.05, 0.01, 0.001, 0.0001 }. If\n"
-                   "                                        the p-value of the assembled reads exceeds the specified p-value, the\n"
-                   "                                        reads will be output unassembled.\n"
-                   "                                        Set 1.0 to disable the test.(default: 0.01)\n");
-  fprintf (stdout, "  -v, --min-overlap           <int>     Minimum overlap (default: 10)\n"
-                   "                                        If the statistical test is used, the min-overlap can in principal be set to 1,\n"
-                   "                                        but in practice setting min-overlap to a proper value will further reduce\n"
-                   "                                        false-positive assemlies.\n"); 	
-  fprintf (stdout, "  -m, --max-assembly-length   <int>     Maximum possible length of the assembled sequence.\n");
-  fprintf (stdout, "                                        The assembled sequence can be arbitrary long if set\n"
-                   "                                        to 0. (default: 0)\n");
-  fprintf (stdout, "  -n, --min-assembly-length   <int>     Minimum possible length of the assembled sequence.\n");
-  fprintf (stdout, "                                        To disable it set to 0. (default: 50)\n");
-  fprintf (stdout, "  -t, --min-trim-length       <int>     Minimum length of reads after trimming the low quality part. If two consecutive\n"
-                   "                                        bases quality scores < q, the rest of the reads will be trimed (default: 1)\n");
-  fprintf (stdout, "  -q, --quality-threshold     <int>     Quality score threshold used for trimming the low quality\n"
-                   "                                        part of the reads (default: 0)\n");
-  fprintf (stdout, "  -u, --max-uncalled-base     <float>   Maximal proportion of uncalled bases. A number between 0 and 1.\n"
-                   "                                        Set to 0 to discard all reads that contain uncalled bases, or\n"
-                   "                                        1 to process all sequences independent on the number of uncalled\n"
-                   "                                        bases. (default: 1)\n");
-  fprintf (stdout, "  -g, --test-method           <int>     Statistical test method: (default: 1)\n"
-                   "                                        1: Test using the highest OES, given the minimum overlap allowed.\n"
-                   "                                           Note due to the discret nature of the test, it usually gives a lower p-value\n" 
-                   "                                           for assembled sequences than the specified one. For example, set p-value = 0.05,\n" 
-                   "                                           using this test, the assembled reads might have an actual p-value of 0.02.\n"
-                   "                                        2: Using the acceptance probability (m.a.p). \n"
-                   "                                           Test method 2 calculate the same probability as test1, but assumes the minimal overlap\n"
-                   "                                           is the observed overlap who has the highest OES, instead of the minimum allowed overlap \n"
-                   "                                           predefined as input parameter (-v). Therefore, it is not a valid statistical test, the \n"
-                   "                                           'p-value' is really the maximal probability we accpet the assembly. However, we found \n"
-                   "                                           in practice, when the actual overlap sizes are small, test 2 can produce more correctly \n"
-                   "                                           assembled sequences with only slightly higher false-positive rates.\n");
-  fprintf (stdout, "  -e, --empirical-freqs                 Disable empirical base frequencies. (default: use empirical base frequencies)\n");
-  fprintf (stdout, "  -s, --score-method          <int>     Scoring method (default: 2)\n"
-                   "                                        1: OES with +1 for match and -1 for mismatch.\n"
-                   "                                        2: Scaled score, use the probobality of bases been correct or wrong to scale \n"
-                   "                                           the score in method 3.\n"
-                   "                                        3: +1 for a match, -1 for a mismatch, ignoring the quality scores.\n");
-  fprintf (stdout, "  -b, --phred-base            <int>     Base Phred quality score (default: 33)\n");
-  fprintf (stdout, "  -y, --memory                <str>     Specify the amount of memory to be used. The number may be followed with one of\n"
-                   "                                        the letters K, M, or G denoting Kilobytes, Megabytes and Gigabytes, respectively.\n"
-                   "                                        In case no letter is specified, bytes are assumed.\n");
+  fprintf (stdout, "  -p, --p-value               <float>   Specify  a p-value for the statistical test. If the computed\n"
+                   "                                        p-value of a possible assembly exceeds the specified p-value\n"
+                   "                                        then  paired-end  read  will not be assembled. Valid options\n"
+                   "                                        are: 0.0001, 0.001, 0.01, 0.05 and 1.0. Setting 1.0 disables\n"
+                   "                                        the test. (default: 0.01)\n");
+  fprintf (stdout, "  -v, --min-overlap           <int>     Specify the minimum overlap size. The minimum overlap may be\n"
+                   "                                        set to 1 when the statistical test is used. However, further\n"
+                   "                                        restricting  the  minimum overlap size to a proper value may\n"
+                   "                                        reduce false-positive assembles. (default: 10)\n"); 	
+  fprintf (stdout, "  -m, --max-assembly-length   <int>     Specify   the  maximum  possible  length  of  the  assembled\n"
+                   "                                        sequences.  Setting this value to 0 disables the restriction\n"
+                   "                                        and assembled sequences may be arbitrary long. (default: 0)\n");
+  fprintf (stdout, "  -n, --min-assembly-length   <int>     Specify   the  minimum  possible  length  of  the  assembled\n"
+                   "                                        sequences.  Setting this value to 0 disables the restriction\n"
+                   "                                        and  assembled  sequences  may be arbitrary short. (default:\n"
+                   "                                        50)\n");
+  fprintf (stdout, "  -t, --min-trim-length       <int>     Specify  the  minimum length of reads after trimming the low\n"
+                   "                                        quality part (see option -q). (default: 1)\n");
+  fprintf (stdout, "  -q, --quality-threshold     <int>     Specify  the  quality  score  threshold for trimming the low\n"
+                   "                                        quality  part  of  a  read.  If  the  quality  scores of two\n"
+                   "                                        consecutive  bases  are  strictly  less  than  the specified\n"
+                   "                                        threshold,  the  rest of the read will be trimmed. (default:\n"
+                   "                                        0)\n");
+  fprintf (stdout, "  -u, --max-uncalled-base     <float>   Specify  the maximal proportion of uncalled bases in a read.\n"
+                   "                                        Setting this value to 0 will cause PEAR to discard all reads\n"
+                   "                                        containing  uncalled  bases.  The other extreme setting is 1\n"
+                   "                                        which  causes  PEAR  to process all reads independent on the\n"
+                   "                                        number of uncalled bases. (default: 1)\n");
+  fprintf (stdout, "  -g, --test-method           <int>     Specify  the  type  of  statistical  test.  Two  options are\n"
+                   "                                        available. (default: 1)\n"
+                   "                                        1: Given the minimum allowed overlap, test using the highest\n"
+                   "                                        OES. Note that due to its discrete nature, this test usually\n"
+                   "                                        yields  a lower p-value for the assembled read than the cut-\n"
+                   "                                        off  (specified  by -p). For example, setting the cut-off to\n"
+                   "                                        0.05  using  this  test,  the  assembled reads might have an\n"
+                   "                                        actual p-value of 0.02.\n\n"
+                   "                                        2. Use the acceptance probability (m.a.p). This test methods\n"
+                   "                                        computes  the same probability as test method 1. However, it\n"
+                   "                                        assumes  that  the  minimal  overlap is the observed overlap\n"
+                   "                                        with  the  highest  OES, instead of the one specified by -v.\n"
+                   "                                        Therefore,  this  is  not  a  valid statistical test and the\n"
+                   "                                        'p-value'  is  in fact the maximal probability for accepting\n"
+                   "                                        the assembly. Nevertheless, we observed in practice that for\n"
+                   "                                        the case the actual overlap sizes are relatively small, test\n"
+                   "                                        2  can  correctly  assemble  more  reads  with only slightly\n"
+                   "                                        higher false-positive rate.\n");
+  fprintf (stdout, "  -e, --empirical-freqs                 Disable  empirical base frequencies. (default: use empirical\n"
+                   "                                        base frequencies)\n");
+  fprintf (stdout, "  -s, --score-method          <int>     Specify the scoring method. (default: 2)\n"
+                   "                                        1. OES with +1 for match and -1 for mismatch.\n"
+                   "                                        2: Assembly score (AS). Use +1 for match and -1 for mismatch\n"
+                   "                                        multiplied by base quality scores.\n"
+                   "                                        3: Ignore quality scores and use +1 for a match and -1 for a\n"
+                   "                                        mismatch.\n");
+  fprintf (stdout, "  -b, --phred-base            <int>     Base PHRED quality score. (default: 33)\n");
+  fprintf (stdout, "  -y, --memory                <str>     Specify  the  amount of memory to be used. The number may be\n"
+                   "                                        followed  by  one  of  the  letters  K,  M,  or  G  denoting\n"
+                   "                                        Kilobytes,  Megabytes and Gigabytes, respectively. Bytes are\n"
+                   "                                        assumed in case no letter is specified.\n");
   fprintf (stdout, "  -j, --threads               <int>     Number of threads to use\n");
   fprintf (stdout, "  -h, --help                            This help screen.\n\n");
 }
