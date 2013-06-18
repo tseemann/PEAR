@@ -2,6 +2,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
+#include "pear.h"
 #include "args.h"
 
 extern void print_number (size_t x);
@@ -53,10 +54,9 @@ void usage (void)
   fprintf (stdout, "|  __/| |___ / ___ \\|  _ <\n");
   fprintf (stdout, "|_|   |_____/_/   \\_\\_| \\_\\\n");
   fprintf (stdout, "\n.oOo. Paired-End AssembleR .oOo.\n");
-  fprintf (stdout, "PEAR v0.8 by Tomas Flouri and Jiajie Zhang\n");
-  fprintf (stdout, "License: Creative Commons license\n");
-  fprintf (stdout, "Free for academic use, for commercial use or bug report, please contact:\n");
-  fprintf (stdout, "flouris@gmail.com and bestzhangjiajie@gmail.com\n");
+  fprintf (stdout, "%s v%s released on %s by Tomas Flouri and Jiajie Zhang\n", PROGRAM_NAME, PROGRAM_VERSION, VERSION_DATE);
+  fprintf (stdout, "License: %s\n", LICENCE);
+  fprintf (stdout, "Bug-reports and requests to: %s\n", CONTACT);
   fprintf (stdout, "\n\n"); 
   fprintf (stdout, "Usage: pear <options>\n");
   fprintf (stdout, "Standard (mandatory):\n");
