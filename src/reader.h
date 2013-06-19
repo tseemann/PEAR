@@ -47,5 +47,6 @@ void init_fastq_reader_double_buffer (const char * file1, const char * file2, si
 struct block_t * sec_fwd, struct block_t * sec_rev);
 int db_get_next_reads (struct block_t * fwd_block, struct block_t * rev_block, struct block_t * old_fwd_block, struct block_t * old_rev_block);
 int db_read_fastq_block (struct block_t * block, FILE * fp, struct block_t * old_block);
+int read_fastq_block (struct block_t * block, FILE * fp);
 void rewind_files (void);
 #endif
