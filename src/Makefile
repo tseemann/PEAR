@@ -1,6 +1,6 @@
 CC     = gcc
 CFLAGS = -Wall -fomit-frame-pointer -O3 -lm -march=native
-INSTALL_PATH = /usr/local/bin
+INSTALL_PATH ?= /usr/local/bin
 all: pear
 
 pear: pear-pt.o args.o statistics.o reader.o  # fastq.o
