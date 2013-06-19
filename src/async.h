@@ -68,8 +68,8 @@ struct thread_local_t
    int id;                     /**< @brief Thread id */
    unsigned int start;         /**< @brief Number of the first read to be processed by current thread */
    unsigned int end;           /**< @brief Number of the last read to be processed by current thread */
-   int match_score;            /**< @brief Match score */
-   int mismatch_score;         /**< @brief Mismatch score */
+//   int match_score;            /**< @brief Match score */
+//   int mismatch_score;         /**< @brief Mismatch score */
    struct emp_freq * ef;       /**< @brief Empirical frequencies */
  };
 

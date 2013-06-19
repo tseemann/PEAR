@@ -11,9 +11,12 @@
 /** @file pear-pt.c
     @brief Main file containing scoring and assembly related functions (pthreads version)
 */
-#define         PHRED_INIT                       33
 #define         THREAD_MIN_PACKET_SIZE           500
 #define         THREAD_PACKET_SIZE_DELTA         20
+
+#define         PEAR_MATCH_SCORE                 1
+#define         PEAR_MISMATCH_SCORE              1
+
 
 static pthread_mutex_t cs_mutex_wnd  = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t cs_mutex_io   = PTHREAD_MUTEX_INITIALIZER;
@@ -30,7 +33,7 @@ struct thread_global_t thr_global;
 int stat_test2 (double, double, int, double);
 
 double
-assemble_overlap (struct read_t * left, struct read_t * right, int base_left, int base_right, int ol_size, struct read_t * ai);
+assemble_overlap (struct read_t * left, struct read_t * right, int base_left, int base_right, int ol_size, struct read_t * ai, int phred_base);
 
 /* TODO: Dynamically allocate them */
 double      sc_eq[256][256];
@@ -46,8 +49,8 @@ double   sc_neqCG[256][256];
 double   sc_neqCT[256][256];
 double   sc_neqGT[256][256];
 
-int match_score    = 1;
-int mismatch_score = 1;
+//int match_score    = 1;
+//int mismatch_score = 1;
 
 /** @brief Trimming of forward part of unassembled sequence
   *
@@ -67,7 +70,7 @@ int mismatch_score = 1;
   *   Returns the length of the trimmed sequence
   */
 int
-trim (struct read_t * read, int min_quality, double * uncalled)
+trim (struct read_t * read, struct user_args * sw, double * uncalled)
 {
   int                   i;
   char                * qscore;
@@ -87,7 +90,7 @@ trim (struct read_t * read, int min_quality, double * uncalled)
   while (*data)
    {
      if (*(data - 1) == 'N' || *(data - 1) == 'n') ++ (*uncalled);
-     if (*(data - 1) - PHRED_INIT < min_quality && *data - PHRED_INIT < min_quality)
+     if (*(data - 1) - sw->phred_base < sw->qual_thres && *data - sw->phred_base < sw->qual_thres)
       {
         *data   = 0;
         *qscore = 0;
@@ -120,7 +123,7 @@ trim (struct read_t * read, int min_quality, double * uncalled)
   *   Returns the length of the trimmed sequence
   */
 int
-trim_cpl (struct read_t * read, int min_quality, double * uncalled)
+trim_cpl (struct read_t * read, struct user_args * sw, double * uncalled)
 {
   int                   i;
   char                * qscore;
@@ -142,7 +145,7 @@ trim_cpl (struct read_t * read, int min_quality, double * uncalled)
   for (i = len - 1; i > 0; -- i)
    {
      if (data[i] == 'N' || data[i] == 'n') ++ *uncalled;
-     if (qscore[i] - PHRED_INIT < min_quality && qscore[i - 1] - PHRED_INIT < min_quality)
+     if (qscore[i] - sw->phred_base < sw->qual_thres && qscore[i - 1] - sw->phred_base < sw->qual_thres)
       {
         qscore[i - 1] = 0;
         data[i - 1]   = 0;
@@ -174,7 +177,7 @@ trim_cpl (struct read_t * read, int min_quality, double * uncalled)
     @param ef
       Structure containing empirical frequencies
 */
-void init_scores (int match, int mismatch, struct emp_freq * ef)
+void init_scores (int phred_base, struct emp_freq * ef)
 {
   int           i, j;
   double        ex, ey;
@@ -204,34 +207,34 @@ void init_scores (int match, int mismatch, struct emp_freq * ef)
    {
      for (j = 0; j < 256; ++ j) 
       {
-        ex = pow (10.0, - (i - PHRED_INIT) / 10.0);
-        ey = pow (10.0, - (j - PHRED_INIT) / 10.0);
+        ex = pow (10.0, - (i - phred_base) / 10.0);
+        ey = pow (10.0, - (j - phred_base) / 10.0);
 
-        sc_eq[i][j]  =    match * ((1 - ex) * (1 - ey) + (ex * ey) / 3.0);
-        sc_neq[i][j] = mismatch * (1 - (1.0 / 3.0) * (1 - ex) * ey - (1.0 / 3.0) * (1 - ey) * ex - (2.0 / 9.0) * ex * ey);
+        sc_eq[i][j]  =    PEAR_MATCH_SCORE * ((1 - ex) * (1 - ey) + (ex * ey) / 3.0);
+        sc_neq[i][j] = PEAR_MISMATCH_SCORE * (1 - (1.0 / 3.0) * (1 - ex) * ey - (1.0 / 3.0) * (1 - ey) * ex - (2.0 / 9.0) * ex * ey);
         //qs_mul[i][j] = ex * ey;
 
-        sc_eqA[i][j] = match * (1 - ex) * (1 - ey) + (ex * ey) * pcgt2 / p2cgt;
-        sc_eqC[i][j] = match * (1 - ex) * (1 - ey) + (ex * ey) * pagt2 / p2agt;
-        sc_eqG[i][j] = match * (1 - ex) * (1 - ey) + (ex * ey) * pact2 / p2act;
-        sc_eqT[i][j] = match * (1 - ex) * (1 - ey) + (ex * ey) * pacg2 / p2acg;
+        sc_eqA[i][j] = PEAR_MATCH_SCORE * (1 - ex) * (1 - ey) + (ex * ey) * pcgt2 / p2cgt;
+        sc_eqC[i][j] = PEAR_MATCH_SCORE * (1 - ex) * (1 - ey) + (ex * ey) * pagt2 / p2agt;
+        sc_eqG[i][j] = PEAR_MATCH_SCORE * (1 - ex) * (1 - ey) + (ex * ey) * pact2 / p2act;
+        sc_eqT[i][j] = PEAR_MATCH_SCORE * (1 - ex) * (1 - ey) + (ex * ey) * pacg2 / p2acg;
 
-        sc_neqAC[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pc / pcgt) - (1 - ex) * ey * (ef->pa / pagt) - ex * ey * (pg2 + pt2) / pgt2);
-        //sc_neqCA[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pa / pagt) - (1 - ex) * ey * (ef->pc / pcgt) - ex * ey * (pg2 + pt2) / pgt2);
+        sc_neqAC[i][j] = PEAR_MISMATCH_SCORE * (1 - (1 - ey) * ex * (ef->pc / pcgt) - (1 - ex) * ey * (ef->pa / pagt) - ex * ey * (pg2 + pt2) / pgt2);
+        //sc_neqCA[i][j] PEAR_MISMATCH_SCOREch * (1 - (1 - ey) * ex * (ef->pa / pagt) - (1 - ex) * ey * (ef->pc / pcgt) - ex * ey * (pg2 + pt2) / pgt2);
 
-        sc_neqAG[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pg / pcgt) - (1 - ex) * ey * (ef->pa / pact) - ex * ey * (pc2 + pt2) / pct2);
-        //sc_neqGA[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pa / pact) - (1 - ex) * ey * (ef->pg / pcgt) - ex * ey * (pc2 + pt2) / pct2);
+        sc_neqAG[i][j] = PEAR_MISMATCH_SCORE * (1 - (1 - ey) * ex * (ef->pg / pcgt) - (1 - ex) * ey * (ef->pa / pact) - ex * ey * (pc2 + pt2) / pct2);
+        //sc_neqGA[i][j] PEAR_MISMATCH_SCOREch * (1 - (1 - ey) * ex * (ef->pa / pact) - (1 - ex) * ey * (ef->pg / pcgt) - ex * ey * (pc2 + pt2) / pct2);
 
-        sc_neqAT[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pt / pcgt) - (1 - ex) * ey * (ef->pa / pacg) - ex * ey * (pc2 + pg2) / pcg2);
-        //sc_neqTA[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pa / pacg) - (1 - ex) * ey * (ef->pt / pcgt) - ex * ey * (pc2 + pg2) / pcg2);
+        sc_neqAT[i][j] = PEAR_MISMATCH_SCORE * (1 - (1 - ey) * ex * (ef->pt / pcgt) - (1 - ex) * ey * (ef->pa / pacg) - ex * ey * (pc2 + pg2) / pcg2);
+        //sc_neqTA[i][j] PEAR_MISMATCH_SCOREch * (1 - (1 - ey) * ex * (ef->pa / pacg) - (1 - ex) * ey * (ef->pt / pcgt) - ex * ey * (pc2 + pg2) / pcg2);
 
-        sc_neqCG[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pg / pagt) - (1 - ex) * ey * (ef->pc / pact) - ex * ey * (pa2 + pt2) / pat2);
-        //sc_neqGC[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pc / pact) - (1 - ex) * ey * (ef->pg / pagt) - ex * ey * (pa2 + pt2) / pat2);
+        sc_neqCG[i][j] = PEAR_MISMATCH_SCORE * (1 - (1 - ey) * ex * (ef->pg / pagt) - (1 - ex) * ey * (ef->pc / pact) - ex * ey * (pa2 + pt2) / pat2);
+        //sc_neqGC[i][j] PEAR_MISMATCH_SCOREch * (1 - (1 - ey) * ex * (ef->pc / pact) - (1 - ex) * ey * (ef->pg / pagt) - ex * ey * (pa2 + pt2) / pat2);
 
-        sc_neqCT[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pt / pagt) - (1 - ex) * ey * (ef->pc / pacg) - ex * ey * (pa2 + pg2) / pag2);
-        //sc_neqTC[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pc / pacg) - (1 - ex) * ey * (ef->pt / pagt) - ex * ey * (pa2 + pg2) / pag2);
+        sc_neqCT[i][j] = PEAR_MISMATCH_SCORE * (1 - (1 - ey) * ex * (ef->pt / pagt) - (1 - ex) * ey * (ef->pc / pacg) - ex * ey * (pa2 + pg2) / pag2);
+        //sc_neqTC[i][j] PEAR_MISMATCH_SCOREch * (1 - (1 - ey) * ex * (ef->pc / pacg) - (1 - ex) * ey * (ef->pt / pagt) - ex * ey * (pa2 + pg2) / pag2);
 
-        sc_neqGT[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pt / pact) - (1 - ex) * ey * (ef->pg / pacg) - ex * ey * (pa2 + pc2) / pac2);
+        sc_neqGT[i][j] = PEAR_MISMATCH_SCORE * (1 - (1 - ey) * ex * (ef->pt / pact) - (1 - ex) * ey * (ef->pg / pacg) - ex * ey * (pa2 + pc2) / pac2);
         //sc_neqTG[i][j] = mismatch * (1 - (1 - ey) * ex * (ef->pg / pacg) - (1 - ex) * ey * (ef->pt / pact) - ex * ey * (pa2 + pc2) / pac2);
 
      }
@@ -979,7 +982,7 @@ scoring_nm (char dleft, char dright, char qleft, char qright, int score_method, 
 }
 
 inline int
-assembly_ef (struct read_t * left, struct read_t * right, int match_score, int mismatch_score, struct emp_freq * ef, struct user_args  * sw)
+assembly_ef (struct read_t * left, struct read_t * right, struct emp_freq * ef, struct user_args  * sw)
 {
   int                   i,j;
   int                   n;
@@ -1088,7 +1091,7 @@ assembly_ef (struct read_t * left, struct read_t * right, int match_score, int m
         if (2 * n - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
          {
            *(left->data - 1) = 0;
-           assemble_overlap (left, right, 0, 0, n, left);
+           assemble_overlap (left, right, 0, 0, n, left, sw->phred_base);
            left->data[n]   = 0;
            left->qscore[n] = 0;
          }
@@ -1112,7 +1115,7 @@ assembly_ef (struct read_t * left, struct read_t * right, int match_score, int m
          {
            *(left->data - 1) = 1;
            
-           assemble_overlap (left, right, n - best_overlap, 0, best_overlap, left);
+           assemble_overlap (left, right, n - best_overlap, 0, best_overlap, left, sw->phred_base);
            memmove (right->data,   right->data   + best_overlap,  n - best_overlap);
            memmove (right->qscore, right->qscore + best_overlap,  n - best_overlap);
            /* THIS IS WRONG */
@@ -1139,7 +1142,7 @@ assembly_ef (struct read_t * left, struct read_t * right, int match_score, int m
 
      if (asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
       {
-        assemble_overlap (left, right, 0, n - best_overlap, best_overlap, left);
+        assemble_overlap (left, right, 0, n - best_overlap, best_overlap, left, sw->phred_base);
         
         left->data[best_overlap]   = 0;
         left->qscore[best_overlap] = 0;
@@ -1159,7 +1162,7 @@ assembly_ef (struct read_t * left, struct read_t * right, int match_score, int m
 }
 
 inline int
-assembly (struct read_t * left, struct read_t * right, int match_score, int mismatch_score, struct user_args  * sw)
+assembly (struct read_t * left, struct read_t * right, struct user_args  * sw)
 {
   int                   i,j;
   int                   n;
@@ -1268,7 +1271,7 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
         if ((n << 1) - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
          {
            *(left->data - 1) = 0;
-           assemble_overlap (left, right, 0, 0, n, left);
+           assemble_overlap (left, right, 0, 0, n, left, sw->phred_base);
            left->data[n]   = 0;
            left->qscore[n] = 0;
          }
@@ -1292,7 +1295,7 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
          {
            *(left->data - 1) = 1;
            
-           assemble_overlap (left, right, n - best_overlap, 0, best_overlap, left);
+           assemble_overlap (left, right, n - best_overlap, 0, best_overlap, left, sw->phred_base);
            memmove (right->data,   right->data   + best_overlap,  n - best_overlap);
            memmove (right->qscore, right->qscore + best_overlap,  n - best_overlap);
            /* THIS IS WRONG */
@@ -1319,7 +1322,7 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
 
      if (asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
       {
-        assemble_overlap (left, right, 0, n - best_overlap, best_overlap, left);
+        assemble_overlap (left, right, 0, n - best_overlap, best_overlap, left, sw->phred_base);
         
         left->data[best_overlap]   = 0;
         left->qscore[best_overlap] = 0;
@@ -1339,7 +1342,7 @@ assembly (struct read_t * left, struct read_t * right, int match_score, int mism
 }
 
 double
-assemble_overlap (struct read_t * left, struct read_t * right, int base_left, int base_right, int ol_size, struct read_t * ai)
+assemble_overlap (struct read_t * left, struct read_t * right, int base_left, int base_right, int ol_size, struct read_t * ai, int phred_base)
 {
   int           i; 
   char          x, y;
@@ -1377,7 +1380,7 @@ assemble_overlap (struct read_t * left, struct read_t * right, int base_left, in
            //exp_match += (sc_eq[(int)qx][(int)qy] / match_score);
            
            ai->data[base_left + i] = x;
-           ai->qscore[base_left + i] = (right->qscore[base_right + i] - PHRED_INIT) + (left->qscore[base_left + i] - PHRED_INIT) + PHRED_INIT; //qs_mul[qx][qy];
+           ai->qscore[base_left + i] = (right->qscore[base_right + i] - phred_base) + (left->qscore[base_left + i] - phred_base) + phred_base; //qs_mul[qx][qy];
          }
         else
          {
@@ -1689,14 +1692,12 @@ void * entry_point_ef (void * data)
            mstrrev (thr_local->block->rev->reads[i]->qscore);  /* reverse the quality scores */
 
            //TODO Switch for empirical frequencies
-           ass = assembly_ef (thr_local->block->fwd->reads[i], thr_local->block->rev->reads[i], thr_local->match_score, thr_local->mismatch_score, thr_local->ef, thr_local->sw);
+           ass = assembly_ef (thr_local->block->fwd->reads[i], thr_local->block->rev->reads[i], thr_local->ef, thr_local->sw);
            *(thr_local->block->fwd->reads[i]->qscore - 1) = ass;
            if (!ass)
             {
-              if (trim     (thr_local->block->fwd->reads[i], thr_local->sw->qual_thres, 
-                        &uncalled_forward) < thr_local->sw->min_trim_len ||
-                  trim_cpl (thr_local->block->rev->reads[i], thr_local->sw->qual_thres,
-                        &uncalled_reverse) < thr_local->sw->min_trim_len ||
+              if (trim     (thr_local->block->fwd->reads[i], thr_local->sw, &uncalled_forward) < thr_local->sw->min_trim_len ||
+                  trim_cpl (thr_local->block->rev->reads[i], thr_local->sw, &uncalled_reverse) < thr_local->sw->min_trim_len ||
                   uncalled_forward >= thr_local->sw->max_uncalled || uncalled_reverse >= thr_local->sw->max_uncalled)
                {
                  *(thr_local->block->fwd->reads[i]->qscore - 1) = 2;
@@ -1842,14 +1843,12 @@ void * entry_point (void * data)
            mstrrev (thr_local->block->rev->reads[i]->qscore);  /* reverse the quality scores */
 
            //TODO Switch for empirical frequencies
-           ass = assembly (thr_local->block->fwd->reads[i], thr_local->block->rev->reads[i], thr_local->match_score, thr_local->mismatch_score, thr_local->sw);
+           ass = assembly (thr_local->block->fwd->reads[i], thr_local->block->rev->reads[i], thr_local->sw);
            *(thr_local->block->fwd->reads[i]->qscore - 1) = ass;
            if (!ass)
             {
-              if (trim     (thr_local->block->fwd->reads[i], thr_local->sw->qual_thres, 
-                        &uncalled_forward) < thr_local->sw->min_trim_len ||
-                  trim_cpl (thr_local->block->rev->reads[i], thr_local->sw->qual_thres,
-                        &uncalled_reverse) < thr_local->sw->min_trim_len ||
+              if (trim     (thr_local->block->fwd->reads[i], thr_local->sw, &uncalled_forward) < thr_local->sw->min_trim_len ||
+                  trim_cpl (thr_local->block->rev->reads[i], thr_local->sw, &uncalled_reverse) < thr_local->sw->min_trim_len ||
                   uncalled_forward >= thr_local->sw->max_uncalled || uncalled_reverse >= thr_local->sw->max_uncalled)
                {
                  *(thr_local->block->fwd->reads[i]->qscore - 1) = 2;
@@ -2212,8 +2211,8 @@ main (int argc, char * argv[])
         thr_data[i].block          = thr_global.xblock;
         thr_data[i].id             = i;
         thr_data[i].sw             = &sw;
-        thr_data[i].match_score    = match_score;
-        thr_data[i].mismatch_score = mismatch_score;
+//        thr_data[i].match_score    = match_score;
+//        thr_data[i].mismatch_score = mismatch_score;
         thr_data[i].start          = 0;
         thr_data[i].end            = 0;
         pthread_create (&tid[i], NULL, emp_entry_point, (void *)&thr_data[i]); 
@@ -2261,7 +2260,7 @@ main (int argc, char * argv[])
 //  printf ("!!!! A: %d\nC: %d\nG: %d\nT: %d\n", ef->freqa, ef->freqc, ef->freqg, ef->freqt);
 //  exit (1);
 
-  init_scores(match_score, mismatch_score, ef);
+  init_scores(sw.phred_base, ef);
 
   fprintf (stdout, "Assemblying reads..................: [");
   fflush (stdout);
@@ -2280,8 +2279,8 @@ main (int argc, char * argv[])
      thr_data[i].block  = thr_global.xblock;
      thr_data[i].id     = i;
      thr_data[i].sw     = &sw;
-     thr_data[i].match_score = match_score;
-     thr_data[i].mismatch_score = mismatch_score;
+//     thr_data[i].match_score = match_score;
+//     thr_data[i].mismatch_score = mismatch_score;
      thr_data[i].start  = 0;
      thr_data[i].end    = 0;
      thr_data[i].ef     = ef;
