@@ -17,11 +17,18 @@
 #define         PEAR_MATCH_SCORE                 1
 #define         PEAR_MISMATCH_SCORE              1
 
+#define         NUM_OF_OUTFILES                  4
+
+static char * outfile_extensions[NUM_OF_OUTFILES] = { ".asssembled.fastq", 
+                                                      ".unassembled.forward.fastq", 
+                                                      ".unassembled.reverse.fastq", 
+                                                      ".discarded.fastq" };
 
 static pthread_mutex_t cs_mutex_wnd  = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t cs_mutex_io   = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t  cs_mutex_cond = PTHREAD_COND_INITIALIZER;
 
+/* used for locking the screen when debugging */
 #ifdef __DEBUG__
 static pthread_mutex_t cs_mutex_out  = PTHREAD_MUTEX_INITIALIZER;
 #endif
@@ -35,7 +42,8 @@ int stat_test2 (double, double, int, double);
 double
 assemble_overlap (struct read_t * left, struct read_t * right, int base_left, int base_right, int ol_size, struct read_t * ai, int phred_base);
 
-/* TODO: Dynamically allocate them */
+/* TODO: 1. Dynamically allocate them 
+ *       2. Change 256 to the allowed range and compute only the necessary values */
 double      sc_eq[256][256];
 double     sc_neq[256][256];
 double     sc_eqA[256][256];
@@ -48,9 +56,6 @@ double   sc_neqAT[256][256];
 double   sc_neqCG[256][256];
 double   sc_neqCT[256][256];
 double   sc_neqGT[256][256];
-
-//int match_score    = 1;
-//int mismatch_score = 1;
 
 /** @brief Trimming of forward part of unassembled sequence
   *
@@ -1922,22 +1927,16 @@ void destroy_thr_global (void)
 void
 init_files (struct user_args * sw)
 {
-  char                * out[4];
+  int i;
+  char * out[4];
+  
   /* construct output file names */
-  out[0] = makefilename (sw->outfile, ".assembled.fastq");
-  out[1] = makefilename (sw->outfile, ".unassembled.forward.fastq");
-  out[2] = makefilename (sw->outfile, ".unassembled.reverse.fastq");
-  out[3] = makefilename (sw->outfile, ".discarded.fastq");
-
-  thr_global.fd[0] = fopen (out[0], "w");
-  thr_global.fd[1] = fopen (out[1], "w");
-  thr_global.fd[2] = fopen (out[2], "w");
-  thr_global.fd[3] = fopen (out[3], "w");
-
-  free (out[0]);
-  free (out[1]);
-  free (out[2]);
-  free (out[3]);
+  for (i = 0; i < NUM_OF_OUTFILES; ++ i)
+   {
+     out[i] = makefilename (sw->outfile, outfile_extensions[i]);
+     thr_global.fd[i] = fopen (out[i], "w");
+     free (out[i]);
+   }
 }
 
 void * emp_entry_point (void * data)
