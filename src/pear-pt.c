@@ -19,7 +19,7 @@
 
 #define         NUM_OF_OUTFILES                  4
 
-static char * outfile_extensions[NUM_OF_OUTFILES] = { ".asssembled.fastq", 
+static char * outfile_extensions[NUM_OF_OUTFILES] = { ".assembled.fastq", 
                                                       ".unassembled.forward.fastq", 
                                                       ".unassembled.reverse.fastq", 
                                                       ".discarded.fastq" };
@@ -1482,6 +1482,24 @@ makefilename (const char * prefix, const char * suffix)
   return (filename);
 }
 
+/** @brief Write data to file
+ *
+ *  Write the result of overlapping of a specific read to the corresponding output file
+ *
+ *  @param fwd
+ *     Structure containing the forward reads. Note that this structure is mutable and has
+ *     been modified to contain the new read which is the result of the assembly.
+ *
+ *  @param rev
+ *     Structure containing the reverse reads. Note that this structure is mutable and has
+ *     been modified to contain the new read which is the result of the assembly.
+ *
+ *  @param elms
+ *     Number of reads in the structure
+ *
+ *  @param fd
+ *     Array of file descriptors of output files
+ */
 void write_data (struct read_t ** fwd, struct read_t ** rev, unsigned int elms, FILE ** fd)
 {
   int i;
