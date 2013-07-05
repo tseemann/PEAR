@@ -19,6 +19,20 @@
 
 #define         NUM_OF_OUTFILES                  4
 
+#define         PEAR_READ_UNASSEMBLED            3
+#define         PEAR_READ_DISCARDED              2
+#define         PEAR_READ_ASSEMBLED              1
+
+#define         PEAR_DECODE_OUT_TYPE(x)          (*((x->data) - 1))
+#define         PEAR_RESET_OUT_TYPE(x)           *((x->data) - 1) = 0
+#define         PEAR_DECODE_ASM_TYPE(x)          (*((x->qscore) - 1))
+#define         PEAR_RESET_ASM_TYPE(x)           *((x->qscore) - 1) = 0
+#define         PEAR_SET_ASM_TYPE(x,y)           *((x->qscore) - 1) = y
+
+#define         PEAR_READ_OUT_SINGLE             0
+#define         PEAR_READ_OUT_BOTH               1
+#define         PEAR_SET_OUT_TYPE(x,y)           *((x->data) - 1) = y
+
 static char * outfile_extensions[NUM_OF_OUTFILES] = { ".assembled.fastq", 
                                                       ".unassembled.forward.fastq", 
                                                       ".unassembled.reverse.fastq", 
@@ -1078,7 +1092,7 @@ assembly_ef (struct read_t * left, struct read_t * right, struct emp_freq * ef, 
 
         if (2 * n - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
          {
-           *(left->data - 1) = 1;
+           PEAR_SET_OUT_TYPE(left,PEAR_READ_OUT_BOTH);
          }
         else
          {
@@ -1095,7 +1109,7 @@ assembly_ef (struct read_t * left, struct read_t * right, struct emp_freq * ef, 
 
         if (2 * n - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
          {
-           *(left->data - 1) = 0;
+           PEAR_SET_OUT_TYPE(left,PEAR_READ_OUT_SINGLE);
            assemble_overlap (left, right, 0, 0, n, left, sw->phred_base);
            left->data[n]   = 0;
            left->qscore[n] = 0;
@@ -1118,7 +1132,7 @@ assembly_ef (struct read_t * left, struct read_t * right, struct emp_freq * ef, 
 
         if (2 * n - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
          {
-           *(left->data - 1) = 1;
+           PEAR_SET_OUT_TYPE(left,PEAR_READ_OUT_BOTH);
            
            assemble_overlap (left, right, n - best_overlap, 0, best_overlap, left, sw->phred_base);
            memmove (right->data,   right->data   + best_overlap,  n - best_overlap);
@@ -1151,7 +1165,7 @@ assembly_ef (struct read_t * left, struct read_t * right, struct emp_freq * ef, 
         
         left->data[best_overlap]   = 0;
         left->qscore[best_overlap] = 0;
-        *(left->data - 1) = 0;   /* flag that it's one piece */
+        PEAR_SET_OUT_TYPE(left,PEAR_READ_OUT_SINGLE);   /* flag that it's one piece */
       }
      else
       {
@@ -1258,7 +1272,7 @@ assembly (struct read_t * left, struct read_t * right, struct user_args  * sw)
 
         if ((n << 1) - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
          {
-           *(left->data - 1) = 1;
+           PEAR_SET_OUT_TYPE(left,PEAR_READ_OUT_BOTH);
          }
         else
          {
@@ -1275,7 +1289,7 @@ assembly (struct read_t * left, struct read_t * right, struct user_args  * sw)
 
         if ((n << 1) - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
          {
-           *(left->data - 1) = 0;
+           PEAR_SET_OUT_TYPE(left,PEAR_READ_OUT_SINGLE);
            assemble_overlap (left, right, 0, 0, n, left, sw->phred_base);
            left->data[n]   = 0;
            left->qscore[n] = 0;
@@ -1298,8 +1312,7 @@ assembly (struct read_t * left, struct read_t * right, struct user_args  * sw)
 
         if ((n << 1) - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
          {
-           *(left->data - 1) = 1;
-           
+           PEAR_SET_OUT_TYPE(left,PEAR_READ_OUT_BOTH);
            assemble_overlap (left, right, n - best_overlap, 0, best_overlap, left, sw->phred_base);
            memmove (right->data,   right->data   + best_overlap,  n - best_overlap);
            memmove (right->qscore, right->qscore + best_overlap,  n - best_overlap);
@@ -1331,7 +1344,7 @@ assembly (struct read_t * left, struct read_t * right, struct user_args  * sw)
         
         left->data[best_overlap]   = 0;
         left->qscore[best_overlap] = 0;
-        *(left->data - 1) = 0;   /* flag that it's one piece */
+        PEAR_SET_OUT_TYPE(left,PEAR_READ_OUT_SINGLE);   /* flag that it's one piece */
       }
      else
       {
@@ -1503,18 +1516,18 @@ makefilename (const char * prefix, const char * suffix)
 void write_data (struct read_t ** fwd, struct read_t ** rev, unsigned int elms, FILE ** fd)
 {
   int i;
-  char two_piece;
+  char bothOut;   /* this is set if both fwd[i] and rev[i] contain the resulting assembled read and qscore */
   
   for ( i = 0; i < elms; ++ i)
    {
-     two_piece = *(fwd[i]->data - 1);
-     *(fwd[i]->data - 1) = 0;
+     bothOut = PEAR_DECODE_OUT_TYPE(fwd[i]);
+     PEAR_RESET_OUT_TYPE(fwd[i]);
 
-     if (*(fwd[i]->qscore - 1) == 1)   /* assembled */
+     if (PEAR_DECODE_ASM_TYPE(fwd[i]) == PEAR_READ_ASSEMBLED)   /* assembled */
       {
-        *(fwd[i]->qscore - 1) = 0;
+        PEAR_RESET_ASM_TYPE(fwd[i]);
         fprintf (fd[0], "%s\n", fwd[i]->header);
-        if (!two_piece)
+        if (!bothOut)
          {
            fprintf (fd[0], "%s\n", fwd[i]->data);
          }
@@ -1525,7 +1538,7 @@ void write_data (struct read_t ** fwd, struct read_t ** rev, unsigned int elms, 
          }
         fprintf (fd[0], "+\n");
 
-        if (!two_piece)
+        if (!bothOut)
          {
            fprintf (fd[0], "%s\n", fwd[i]->qscore);
          }
@@ -1535,23 +1548,23 @@ void write_data (struct read_t ** fwd, struct read_t ** rev, unsigned int elms, 
            fprintf (fd[0], "%s\n", rev[i]->qscore);
          }
       }
-     else if (*(fwd[i]->qscore - 1) == 2)                                            /* not assembled */
+     else if (PEAR_DECODE_ASM_TYPE(fwd[i]) == PEAR_READ_DISCARDED)                                            /* discarded */
       {
-        *(fwd[i]->qscore - 1) = 0;
-           /* discarded reads*/
-           /* Maybe consider printing the untrimmed sequences */
-           fprintf (fd[3], "%s\n", fwd[i]->header);
-           fprintf (fd[3], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
-           fprintf (fd[3], "%s\n", rev[i]->header);
-           fprintf (fd[3], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
+        PEAR_RESET_ASM_TYPE(fwd[i]);
+        /* discarded reads*/
+        /* Maybe consider printing the untrimmed sequences */
+        fprintf (fd[3], "%s\n", fwd[i]->header);
+        fprintf (fd[3], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
+        fprintf (fd[3], "%s\n", rev[i]->header);
+        fprintf (fd[3], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
       }
      else   /* unassembled reads*/
       {
-        *(fwd[i]->qscore - 1) = 0;
-           fprintf (fd[1], "%s\n", fwd[i]->header);
-           fprintf (fd[2], "%s\n", rev[i]->header);
-           fprintf (fd[1], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
-           fprintf (fd[2], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
+        PEAR_RESET_ASM_TYPE(fwd[i]);
+        fprintf (fd[1], "%s\n", fwd[i]->header);
+        fprintf (fd[2], "%s\n", rev[i]->header);
+        fprintf (fd[1], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
+        fprintf (fd[2], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
       }
    }
 }
@@ -1581,14 +1594,14 @@ inline int assign_reads (struct blockinfo_t * block, struct thread_local_t * thr
   if (block->reads - block->processed <= r + THREAD_PACKET_SIZE_DELTA)
    {
      thr_local->end    = block->reads;
-     block->processed = block->reads;
+     block->processed  = block->reads;
    }
   else
    {
      thr_local->end    = thr_local->start + r;
-     block->processed = thr_local->start + r;
+     block->processed  = thr_local->start + r;
    }
-  ++ block->threads ;
+  ++ block->threads;
   return (1);
 }
 
@@ -1716,18 +1729,18 @@ void * entry_point_ef (void * data)
 
            //TODO Switch for empirical frequencies
            ass = assembly_ef (thr_local->block->fwd->reads[i], thr_local->block->rev->reads[i], thr_local->ef, thr_local->sw);
-           *(thr_local->block->fwd->reads[i]->qscore - 1) = ass;
+           PEAR_SET_ASM_TYPE(thr_local->block->fwd->reads[i],ass);
            if (!ass)
             {
               if (trim     (thr_local->block->fwd->reads[i], thr_local->sw, &uncalled_forward) < thr_local->sw->min_trim_len ||
                   trim_cpl (thr_local->block->rev->reads[i], thr_local->sw, &uncalled_reverse) < thr_local->sw->min_trim_len ||
                   uncalled_forward >= thr_local->sw->max_uncalled || uncalled_reverse >= thr_local->sw->max_uncalled)
                {
-                 *(thr_local->block->fwd->reads[i]->qscore - 1) = 2;
+                 PEAR_SET_ASM_TYPE(thr_local->block->fwd->reads[i],PEAR_READ_DISCARDED);
                }
               else
                {
-                 *(thr_local->block->fwd->reads[i]->qscore - 1) = 3;
+                 PEAR_SET_ASM_TYPE(thr_local->block->fwd->reads[i],PEAR_READ_UNASSEMBLED);
                }
             }
          }
@@ -1867,18 +1880,18 @@ void * entry_point (void * data)
 
            //TODO Switch for empirical frequencies
            ass = assembly (thr_local->block->fwd->reads[i], thr_local->block->rev->reads[i], thr_local->sw);
-           *(thr_local->block->fwd->reads[i]->qscore - 1) = ass;
+           PEAR_SET_ASM_TYPE(thr_local->block->fwd->reads[i],ass);
            if (!ass)
             {
               if (trim     (thr_local->block->fwd->reads[i], thr_local->sw, &uncalled_forward) < thr_local->sw->min_trim_len ||
                   trim_cpl (thr_local->block->rev->reads[i], thr_local->sw, &uncalled_reverse) < thr_local->sw->min_trim_len ||
                   uncalled_forward >= thr_local->sw->max_uncalled || uncalled_reverse >= thr_local->sw->max_uncalled)
                {
-                 *(thr_local->block->fwd->reads[i]->qscore - 1) = 2;
+                 PEAR_SET_ASM_TYPE(thr_local->block->fwd->reads[i],PEAR_READ_DISCARDED);
                }
               else
                {
-                 *(thr_local->block->fwd->reads[i]->qscore - 1) = 3;
+                 PEAR_SET_ASM_TYPE(thr_local->block->fwd->reads[i],PEAR_READ_UNASSEMBLED);
                }
             }
          }
