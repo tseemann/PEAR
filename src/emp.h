@@ -15,11 +15,11 @@
 */
 struct emp_freq
  {
-   int freqa;   /**< @brief Frequency of A */
-   int freqc;   /**< @brief Frequency of C */
-   int freqg;   /**< @brief Frequency of G */
-   int freqt;   /**< @brief Frequency of T */
-   int freqn;   /**< @brief Frequency of N */
+   unsigned long freqa;   /**< @brief Frequency of A */
+   unsigned long freqc;   /**< @brief Frequency of C */
+   unsigned long freqg;   /**< @brief Frequency of G */
+   unsigned long freqt;   /**< @brief Frequency of T */
+   unsigned long freqn;   /**< @brief Frequency of N */
 
    double total; /**< @brief \a freqa + \a freqc + \a freqg + \a freqt */
    

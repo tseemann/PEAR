@@ -329,12 +329,12 @@ destroy_reader (void)
 
 /* Parse a block to a reads struct and return a pointer to the last unprocessed
    read, if such one exists */
-inline int
+inline unsigned long
 parse_block (struct block_t * block)
 {
   int phase;
   char * ptr;
-  int elms;
+  unsigned int elms;
   char * offset;
   char * ignore = NULL;
 
@@ -453,9 +453,9 @@ int db_read_fastq_block (struct block_t * block, FILE * fp, struct block_t * old
   return (1);
 }
 
-int db_get_next_reads (struct block_t * fwd_block, struct block_t * rev_block, struct block_t * old_fwd_block, struct block_t * old_rev_block)
+unsigned int db_get_next_reads (struct block_t * fwd_block, struct block_t * rev_block, struct block_t * old_fwd_block, struct block_t * old_rev_block, int * sanity)
 {
-  int n1, n2;
+  unsigned int n1, n2;
 
 //  if (!eof1 || !eof2) return (0);
 
@@ -464,6 +464,16 @@ int db_get_next_reads (struct block_t * fwd_block, struct block_t * rev_block, s
   
   n1 = parse_block (fwd_block);
   n2 = parse_block (rev_block);
+
+  if (!eof1 && n2 > n1)
+   {
+     *sanity = PEAR_REVERSE_LARGER;
+   }
+  
+  if (!eof2 && n1 > n2)
+   {
+     *sanity = PEAR_FORWARD_LARGER;
+   }
   
   /* align reads if different count selected */
   if (n1 != n2)
