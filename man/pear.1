@@ -1,0 +1,128 @@
+.TH PEAR 1 "1 Oct 2013" "PEAR" "PEAR manual"
+.SH NAME
+PEAR - Paired-end reads merger
+.SH SYNOPSIS
+.B pear
+[\fIOPTIONS\fR]
+.br
+.SH DESCRIPTION
+.BR PEAR
+is a paired-end reads merger for the Illumina platform.
+.PP
+\fBPEAR\fR evaluates all possible paired-end read overlaps and does
+not require the target fragment size as input. It also implements
+a statistical test for minimizing false-positive results. The highly optimized
+and parallelized implementation allows for merging millions of paired-end reads
+within a few minutes on a standard desktop computer.
+.PP
+Using \fBPEAR\fR is very easy. Invoke it from the prompt of your command interpreter as follows:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+shell> \fBpear \-f\fR \fB\fIforward-fastq\fR\fR\fB \-r \fR\fB\fIreverse-fastq\fR\fR\fB \-o \fR\fB\fIouput\fR\fR
+.fi
+.if n \{\
+.RE
+.\}
+.SH OPTIONS
+.TP
+\fB\-f\fR, \fB\-\-forward\-fastq=\fIFILENAME\fR\fR
+Forward paired-end FASTQ file
+.TP
+\fB\-r\fR, \fB\-\-reverse\-fastq=\fIFILENAME\fR\fR
+Reverse paired-end FASTQ file
+.TP
+\fB\-o\fR, \fB\-\-output=\fIFILENAME\fR\fR
+Output filename
+.TP
+\fB\-p\fR, \fB\-\-p\-value=\fIPVALUE\fR\fR
+Specify the value \fIPVALUE\fR as the p-value for the statistical test. If the computer
+p-value of a possible merging exceeds the specified p-value then the paired-end read will
+not be merged. Valid options are: \fB0.0001\fR, \fB0.001\fR, \fB0.01\fR, \fB0.05\fR and
+\fB1.0\fR. Setting \fB1.0\fR disables the test. (default: \fB0.01\fR)
+.TP
+\fB\-v\fR, \fB\-\-min\-overlap=\fIVALUE\fR\fR
+Set \fIVALUE\fR as the minimum overlap size. The minimum overlap may be set to \fB1\fR when
+the statistical test is used. However, further restricting the minimum overlap size to a 
+proper value may reduce false-positive assemblies. (default: \fB10\fR)
+.TP
+\fB\-m\fR, \fB\-\-max\-assembly\-length=\fIVALUE\fR\fR
+Set \fIVALUE\fR as the maximum possible length of the assembled sequences. Setting this
+value to \fB0\fR disables the restriction and assembled sequences may be arbitrarily long (default: \fB0\fR)
+.TP
+\fB\-n\fR, \fB\-\-min\-assembly\-length=\fIVALUE\fR\fR
+Set \fIVALUE\fR as the minimum possible length of the assembled sequences. Setting this
+value to \fB0\fR disables the restriction and assembled sequences may be arbitrarily long (default: \fB0\fR)
+.TP
+\fB\-t\fR, \fB\-\-min-trim-length=\fIVALUE\fR\fR
+Sets the minimum length of reads after trimming the low quality part (see option \fB\-q\fR) to \fIVALUE\fR.
+(default: \fB1\fR)
+.TP
+\fB\-q\fR, \fB\-\-quality\-threshold=\fIVALUE\fR\fR
+Sets the quality score threshold for trimming the low quality part of a read to \fIVALUE\fR. If the quality scores
+of two consecutive bases are strictly less than the specified threshold, the rest of the read will
+be trimmed. (default: \fB0\fR)
+.TP
+\fB\-u\fR, \fB\-\-max\-uncalled\-base=\fIVALUE\fR\fR
+Sets the maximal proportion of uncalled bases in a read to \fIVALUE\fR. Setting this value to
+\fB0\fR will cause \fBPEAR\fR to discard all reads that contain uncalled bases. The other extreme
+setting is \fB1\fR which causes \fBPEAR\fR to process all reads independent on the  number of
+uncalled bases. (default: \fB1\fR)
+.TP
+\fB\-g\fR, \fB\-\-test\-method=\fITYPE\fR\fR
+Specifies the type of statistical test. Two options are available, \fB1\fR and \fB2\fR. (default: \fB1\fR)
+.TP
+.PP
+\fB1\fR: Given the minimum allowed overlap, test using the highest OES. Note that due to its
+discrete nature, this test usually yields a lower p-value for the assembled read than the cut-off (specified by \fB\-p\fR).
+For example, setting the cut-off to \fB0.05\fR using this test, the assembled reads might have an actual p-value
+of \fB0.02\fR
+.TP
+.PP
+\fB2\fR: Use the acceptance probability (m.a.p). This test method computes the same probability as test method \fB1\fR. However,
+it assumes that the minimal overlap is the observed overlap with the highest OES, instead of the one
+specified by \fB\-v\fR. Therefore, this is not a valid statistical test and the 'p\-value' is in fact the 
+maximal probability for accepting the assembly. Nevertheless, in practice, test \fB2\fR can correctly assemble 
+more reads with only slightly higher false-positive rate when the actual overlap sizes are relatively small.
+.TP
+\fB\-e\fR, \fB\-\-empirical\-freqs\fR
+Disable empirical base frequencies. (default: use empirical base frequencies)
+.TP
+\fB\-s\fR, \fB\-\-score\-method=\fIMETHOD\fR\fR
+Specify the scoring method. Three options are available, \fB1\fR, \fB2\fR and \fB3\fR. (default: \fB2\fR)
+.TP
+.PP
+\fB1\fR: OES with +1 for match and -1 for mismatch
+.TP
+.PP
+\fB2\fR: Assembly score (AS). Use +1 for match and -1 for mismatch multiplied by base quality scores
+.TP
+.PP
+\fB3\fR: Ignore quality scores and use +1 for a match and -1 for a mismatch
+.TP
+\fB\-b\fR, \fB\-\-phred\-base=\fIVALUE\fR\fR
+Sets the base PHRED quality score to \fIVALUE\fR. (default: \fB33\fR)
+.TP
+\fB\-y\fR, \fB\-\-memory=\fISIZE\fR\fR
+Specifies the amount of memory to be used. The number may be followed by one of the letters \fBK\fR, \fBM\fR, or \fBG\fR
+denoting Kilobytes, Megabytes and Gigabytes, respectively. Bytes are assumed in case no letter is specified. (default: \fB200M\fR)
+.TP
+\fB\-j\fR, \fB\-\-threads=\fITHREADS\fR\fR
+Use \fITHREADS\fR number of threads
+.PP
+\fB\-h\fR, \fB\-\-help\fR
+This help screen
+.SH AUTHORS
+\fBTomas Flouri\fR <Tomas.Flouri@h\-its.org>
+.br
+\fBJiajie Zhang\fR <Jiajie.Zhang@h-its.org>
+.br
+\fBKassian Kobert\fR <Kassian.Kobert@h-its.org>
+.br
+\fBAlexandros Stamatakis\fR <Alexandros.Stamatakis@h-its.org>
+.SH BUGS
+Report \fBPEAR\fR bugs to \fBpear-users@googlegroups.com\fR
+.SH SEE ALSO
+For more information, please refer to the \fBPEAR\fR, which is available online at \fBhttp://www.exelixis-lab.org/pear\fR
