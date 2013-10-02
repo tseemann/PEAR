@@ -33,6 +33,11 @@
 #define         PEAR_READ_OUT_BOTH               1
 #define         PEAR_SET_OUT_TYPE(x,y)           *((x->data) - 1) = y
 
+static int trim_cpl (struct read_t * read, struct user_args * sw, double * uncalled);
+static int trim (struct read_t * read, struct user_args * sw, double * uncalled);
+static void init_scores (int phred_base, struct emp_freq * ef);
+static char * makefilename (const char * prefix, const char * suffix);
+
 static char * outfile_extensions[NUM_OF_OUTFILES] = { ".assembled.fastq", 
                                                       ".unassembled.forward.fastq", 
                                                       ".unassembled.reverse.fastq", 
@@ -94,7 +99,7 @@ double   sc_neqGT[256][256];
   * @return
   *   Returns the length of the trimmed sequence
   */
-int
+static int
 trim (struct read_t * read, struct user_args * sw, double * uncalled)
 {
   int                   i;
@@ -147,7 +152,7 @@ trim (struct read_t * read, struct user_args * sw, double * uncalled)
   * @return
   *   Returns the length of the trimmed sequence
   */
-int
+static int
 trim_cpl (struct read_t * read, struct user_args * sw, double * uncalled)
 {
   int                   i;
@@ -202,7 +207,7 @@ trim_cpl (struct read_t * read, struct user_args * sw, double * uncalled)
     @param ef
       Structure containing empirical frequencies
 */
-void init_scores (int phred_base, struct emp_freq * ef)
+static void init_scores (int phred_base, struct emp_freq * ef)
 {
   int           i, j;
   double        ex, ey;
@@ -1488,7 +1493,7 @@ validate_input (int nleft, int nright)
   return (1);
 }
 
-char *
+static char *
 makefilename (const char * prefix, const char * suffix)
 {
   char * filename;
