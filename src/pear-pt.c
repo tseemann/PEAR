@@ -33,6 +33,8 @@
 #define         PEAR_READ_OUT_BOTH               1
 #define         PEAR_SET_OUT_TYPE(x,y)           *((x->data) - 1) = y
 
+extern void print_number (size_t x);
+
 static int trim_cpl (struct read_t * read, struct user_args * sw, double * uncalled);
 static int trim (struct read_t * read, struct user_args * sw, double * uncalled);
 static void init_scores (int phred_base, struct emp_freq * ef);
@@ -59,6 +61,13 @@ static pthread_mutex_t cs_mutex_out  = PTHREAD_MUTEX_INITIALIZER;
 struct thread_global_t thr_global;
 
 int inputFileSanity = 0;        /* Check on whether forward/reverse files have the same number of reads */
+
+
+static unsigned long g_count_assembled   = 0;
+static unsigned long g_count_discarded   = 0;
+static unsigned long g_count_unassembled = 0;
+static unsigned long g_count_total       = 0;
+
 
 
 //int stat_test (double, double, int, double);
@@ -1558,6 +1567,8 @@ void write_data (struct read_t ** fwd, struct read_t ** rev, unsigned int elms, 
            fprintf (fd[0], "%s",   fwd[i]->qscore);
            fprintf (fd[0], "%s\n", rev[i]->qscore);
          }
+        
+        ++ g_count_assembled;
       }
      else if (PEAR_DECODE_ASM_TYPE(fwd[i]) == PEAR_READ_DISCARDED)                                            /* discarded */
       {
@@ -1568,6 +1579,7 @@ void write_data (struct read_t ** fwd, struct read_t ** rev, unsigned int elms, 
         fprintf (fd[3], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
         fprintf (fd[3], "%s\n", rev[i]->header);
         fprintf (fd[3], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
+        ++ g_count_discarded;
       }
      else   /* unassembled reads*/
       {
@@ -1576,6 +1588,7 @@ void write_data (struct read_t ** fwd, struct read_t ** rev, unsigned int elms, 
         fprintf (fd[2], "%s\n", rev[i]->header);
         fprintf (fd[1], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
         fprintf (fd[2], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
+        ++ g_count_unassembled;
       }
    }
 }
@@ -2182,8 +2195,7 @@ DisplayInstance (struct user_args * sw)
   fprintf (stdout, "Minimum assembly length............: %d\n", sw->min_asm_len);
   fprintf (stdout, "p-value............................: %f\n", sw->p_value);
   fprintf (stdout, "Quality score threshold (trimming).: %d\n", sw->qual_thres);
-  fprintf (stdout, "Minimum read size fter trimming....: %d\n", sw->min_trim_len);
-  fprintf (stdout, "Minimum read size fter trimming....: %d\n", sw->min_trim_len);
+  fprintf (stdout, "Minimum read size after trimming...: %d\n", sw->min_trim_len);
   fprintf (stdout, "Maximal ratio of uncalled bases....: %f\n", sw->max_uncalled);
   fprintf (stdout, "Minimum overlap....................: %d\n", sw->min_overlap);
   fprintf (stdout, "Scoring method.....................: ");
@@ -2352,6 +2364,27 @@ main (int argc, char * argv[])
      pthread_join (tid[i], NULL);
    }
   printf ("]\n\n");
+
+  g_count_total = g_count_assembled + g_count_discarded + g_count_unassembled;
+  printf ("Assembled reads ...................: ");
+  print_number (g_count_assembled);
+  printf (" / ");
+  print_number (g_count_total);
+  printf (" (%.3f%%)\n", ((double)g_count_assembled / g_count_total) * 100);
+
+  printf ("Discarded reads ...................: ");
+  print_number (g_count_discarded);
+  printf (" / ");
+  print_number (g_count_total);
+  printf (" (%.3f%%)\n", ((double)g_count_discarded / g_count_total) * 100);
+
+  printf ("Not assembled reads ...............: ");
+  print_number (g_count_unassembled);
+  printf (" / ");
+  print_number (g_count_total);
+  printf (" (%.3f%%)\n", ((double)g_count_unassembled / g_count_total) * 100);
+
+
 
   printf ("Assembled reads file...............: %s%s\n", sw.outfile, ".assembled.fastq");
   printf ("Discarded reads file...............: %s%s\n", sw.outfile, ".discarded.fastq");
