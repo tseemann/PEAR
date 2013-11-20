@@ -1,5 +1,5 @@
 CC     = gcc
-CFLAGS = -Wall -fomit-frame-pointer -O3 -lm -march=native
+CFLAGS = -Wall -fomit-frame-pointer -O3 -lm
 INSTALL_PATH ?= /usr/local/bin
 all: pear
 
