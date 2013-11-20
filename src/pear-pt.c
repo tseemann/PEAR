@@ -1558,6 +1558,8 @@ assembly_REVERSE_LONGER (fastqRead * forward, fastqRead * reverse, struct emp_fr
       }
    }
 
+  printf ("Our case is %d and best_overlap is %d\n", bestScoreCase, best_overlap);
+
   /* do a statistical test */
   if (sw->test == 1) 
     st_pass = stat_test2 (sw->p_value, best_oes, sw->min_overlap, ef->q);
@@ -1650,8 +1652,8 @@ assembly_REVERSE_LONGER (fastqRead * forward, fastqRead * reverse, struct emp_fr
           memmove (reverse->data,   reverse->data + nReverse - best_overlap,   best_overlap);
           memmove (reverse->qscore, reverse->qscore + nReverse - best_overlap, best_overlap);
 
-          reverse->data[nReverse - best_overlap]   = 0;
-          reverse->qscore[nReverse - best_overlap] = 0;
+          reverse->data[best_overlap]   = 0;
+          reverse->qscore[best_overlap] = 0;
         }
        else
         {
@@ -2227,6 +2229,7 @@ void * entry_point_ef (void * data)
 //              printf ("!!!!!!!!!! Writing another %d reads\n", thr_global.xblock->reads);
               write_data (thr_global.xblock->fwd->reads, thr_global.xblock->rev->reads, thr_global.xblock->reads, thr_global.fd);
 //              printf ("Finsihed\n");
+              break;
             }
            pthread_mutex_unlock (&cs_mutex_wnd);
            break;
