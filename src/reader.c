@@ -335,7 +335,7 @@ parse_block (memBlock * block)
 {
   int 
     phase,
-    i,
+    i;
   char
     * ptr,
     * offset,
@@ -490,9 +490,6 @@ int db_read_fastq_block (memBlock * block, FILE * fp, memBlock * old_block)
 unsigned int db_get_next_reads (memBlock * fwd_block, memBlock * rev_block, memBlock * old_fwd_block, memBlock * old_rev_block, int * sanity)
 {
   unsigned int n1, n2;
-  int i;
-
-//  if (!eof1 || !eof2) return (0);
 
   eof1 = db_read_fastq_block (fwd_block, fp1, old_fwd_block);
   eof2 = db_read_fastq_block (rev_block, fp2, old_rev_block);
