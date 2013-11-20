@@ -330,7 +330,7 @@ destroy_reader (void)
 
 /* Parse a block to a reads struct and return a pointer to the last unprocessed
    read, if such one exists */
-inline unsigned long
+INLINE unsigned long
 parse_block (memBlock * block)
 {
   int 
@@ -666,7 +666,7 @@ int read_fastq_block (memBlock * block, FILE * fp)
   return (1);
 }
 
-static inline void
+static INLINE void
 do_cpuid(uint32_t selector, uint32_t *data)
 {
   asm("cpuid"

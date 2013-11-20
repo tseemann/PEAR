@@ -9,6 +9,13 @@
 #define         PEAR_PARSE_PHASE_PLUS_SIGN       2
 #define         PEAR_PARSE_PHASE_QUALITY_VALS    3
 
+#ifdef __APPLE__
+#define INLINE
+#else
+#define INLINE inline
+#endif
+
+
 /** @file reader.h
     @brief Header file for memory pool and reader
 

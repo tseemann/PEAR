@@ -288,7 +288,7 @@ static void init_scores (int phred_base, struct emp_freq * ef)
 }
 
 #ifdef EXPERIMENTAL
-inline void
+INLINE void
 scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, double * score, double * oes, int match, int mismatch, struct emp_freq * ef)
 {
   double tmp;
@@ -581,7 +581,7 @@ scoring_ef (char dleft, char dright, char qleft, char qright, int score_method, 
 }
 #endif
 
-inline void
+INLINE void
 scoring_ef_nm (char dleft, char dright, char qleft, char qright, int score_method, double * score, double * oes, struct emp_freq * ef)
 {
   double tmp;
@@ -898,7 +898,7 @@ scoring_ef_nm (char dleft, char dright, char qleft, char qright, int score_metho
 }
 
 /* TODO: Remember to speed up this function by doing something with the multiplication and division of match/mismatch */
-inline void 
+INLINE void 
 scoring (char dleft, char dright, char qleft, char qright, int score_method, double * score, double * oes, int match, int mismatch)
 {
   double tmp;
@@ -963,7 +963,7 @@ scoring (char dleft, char dright, char qleft, char qright, int score_method, dou
 }
 
 /* TODO: Remember to speed up this function by doing something with the multiplication and division of match/mismatch */
-inline void 
+INLINE void 
 scoring_nm (char dleft, char dright, char qleft, char qright, int score_method, double * score, double * oes)
 {
   double tmp;
@@ -1027,7 +1027,7 @@ scoring_nm (char dleft, char dright, char qleft, char qright, int score_method, 
    }
 }
 
-inline int
+INLINE int
 assembly_FORWARD_LONGER (fastqRead * forward, fastqRead * reverse, struct emp_freq * ef, struct user_args  * sw, int nForward, int nReverse)
 {
   int 
@@ -1265,7 +1265,7 @@ assembly_FORWARD_LONGER (fastqRead * forward, fastqRead * reverse, struct emp_fr
 
 }
 
-inline int
+INLINE int
 assembly_READS_EQUAL (fastqRead * forward, fastqRead * reverse, struct emp_freq * ef, struct user_args  * sw, int n)
 {
   int 
@@ -1451,7 +1451,7 @@ assembly_READS_EQUAL (fastqRead * forward, fastqRead * reverse, struct emp_freq 
 
 }
 
-inline int
+INLINE int
 assembly_REVERSE_LONGER (fastqRead * forward, fastqRead * reverse, struct emp_freq * ef, struct user_args  * sw, int nForward, int nReverse)
 {
   int 
@@ -1688,7 +1688,7 @@ assembly_REVERSE_LONGER (fastqRead * forward, fastqRead * reverse, struct emp_fr
 }
 
 
-inline int
+INLINE int
 assembly_ef (fastqRead * forward, fastqRead * reverse, struct emp_freq * ef, struct user_args  * sw)
 {
   int
@@ -1719,7 +1719,7 @@ assembly_ef (fastqRead * forward, fastqRead * reverse, struct emp_freq * ef, str
   return (rc);
 }
 
-inline int
+INLINE int
 assembly (fastqRead * left, fastqRead * right, struct user_args  * sw)
 {
   int                   i,j;
@@ -2144,7 +2144,8 @@ void flip_list (void)
   thr_global.yblock = elm1;
 }
 
-inline int assign_reads (memBlockInfo * block, struct thread_local_t * thr_local)
+INLINE int 
+assign_reads (memBlockInfo * block, struct thread_local_t * thr_local)
 {
   int r;
 
