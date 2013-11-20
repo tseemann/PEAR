@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <pthread.h>
+#include <assert.h>
 #include "args.h"
 #include "emp.h"
 #include "reader.h"
@@ -33,10 +34,16 @@
 #define         PEAR_READ_OUT_BOTH               1
 #define         PEAR_SET_OUT_TYPE(x,y)           *((x->data) - 1) = y
 
+#define         PEAR_MERGE_NO_TRIM              1
+#define         PEAR_MERGE_TRIM_FORWARD         2
+#define         PEAR_MERGE_TRIM_BOTH            3
+#define         PEAR_MERGE_TRIM_REVERSE         4
+
+
 extern void print_number (size_t x);
 
-static int trim_cpl (struct read_t * read, struct user_args * sw, double * uncalled);
-static int trim (struct read_t * read, struct user_args * sw, double * uncalled);
+static int trim_cpl (fastqRead * read, struct user_args * sw, double * uncalled);
+static int trim (fastqRead * read, struct user_args * sw, double * uncalled);
 static void init_scores (int phred_base, struct emp_freq * ef);
 static char * makefilename (const char * prefix, const char * suffix);
 
@@ -74,7 +81,7 @@ static unsigned long g_count_total       = 0;
 int stat_test2 (double, double, int, double);
 
 double
-assemble_overlap (struct read_t * left, struct read_t * right, int base_left, int base_right, int ol_size, struct read_t * ai, int phred_base);
+assemble_overlap (fastqRead * left, fastqRead * right, int base_left, int base_right, int ol_size, fastqRead * ai, int phred_base);
 
 /* TODO: 1. Dynamically allocate them 
  *       2. Change 256 to the allowed range and compute only the necessary values */
@@ -109,7 +116,7 @@ double   sc_neqGT[256][256];
   *   Returns the length of the trimmed sequence
   */
 static int
-trim (struct read_t * read, struct user_args * sw, double * uncalled)
+trim (fastqRead * read, struct user_args * sw, double * uncalled)
 {
   int                   i;
   char                * qscore;
@@ -162,7 +169,7 @@ trim (struct read_t * read, struct user_args * sw, double * uncalled)
   *   Returns the length of the trimmed sequence
   */
 static int
-trim_cpl (struct read_t * read, struct user_args * sw, double * uncalled)
+trim_cpl (fastqRead * read, struct user_args * sw, double * uncalled)
 {
   int                   i;
   char                * qscore;
@@ -1021,36 +1028,277 @@ scoring_nm (char dleft, char dright, char qleft, char qright, int score_method, 
 }
 
 inline int
-assembly_ef (struct read_t * left, struct read_t * right, struct emp_freq * ef, struct user_args  * sw)
+assembly_FORWARD_LONGER (fastqRead * forward, fastqRead * reverse, struct emp_freq * ef, struct user_args  * sw, int nForward, int nReverse)
 {
-  int                   i,j;
-  int                   n;
-  double                score;
-  double                oes;
-  double                best_score = 0;
-  double                best_oes = 0;
-  int                   best_overlap = 0;       /* overlap of the best alignment */
-  int                   run_through = 0;
-  int                   nMatch;
-  int                   asm_len = 0;
-  int                   st_pass;
-  double                uncalled = 0;
-  
-  n = strlen (left->data);
-     
-  /* compute score for every overlap */
-  score = 0;
-  oes   = 0;
-  for (i = 0; i <= n; ++ i)    /* the size of the overlap */
-   {     
-     nMatch = 0;
-     score = 0;
-     oes   = 0;
+  int 
+    i,
+    j;
+  double
+    score = 0,
+    oes = 0,
+    best_score = 0,
+    best_oes = 0,
+    uncalled = 0;
+  int
+    best_overlap = 0,       /* overlap of the best alignment */
+    nMatch,
+    asm_len = 0,
+    st_pass,
+    bestScoreCase = 0;
+
+     /*   -------------->
+     *                  <------
+     *    ....
+     *    ------------->
+     *           <------
+     */
+  for (i = 1; i <= nReverse; ++ i)
+   {
+     nMatch = score = oes = 0;
      for (j = 0; j < i; ++ j)
       {
-        //scoring_ef (left->data[n - i + j], right->data[j], left->qscore[n - i + j], right->qscore[j], sw->score_method, &score, &oes, match_score, mismatch_score, ef);
-        scoring_ef_nm (left->data[n - i + j], right->data[j], left->qscore[n - i + j], right->qscore[j], sw->score_method, &score, &oes, ef);
-        if (left->data[n - i + j] == right->data[j]) ++nMatch;
+        scoring_ef_nm (forward->data[nForward - i + j], 
+                       reverse->data[j], 
+                       forward->qscore[nForward - i + j], 
+                       reverse->qscore[j], 
+                       sw->score_method, 
+                       &score, 
+                       &oes, 
+                       ef);
+
+        if (forward->data[nForward - i + j] == reverse->data[j]) ++nMatch;
+      }
+
+     if (score > best_score)
+      {
+        bestScoreCase = PEAR_MERGE_NO_TRIM;
+        best_overlap  = i;
+        best_score    = score;
+        best_oes      = oes;
+      }
+   }
+  /* compute score for runthrough case */
+  /*   -------------->
+  *           <------
+  *    ....
+  *    ------------->
+  *    <------
+  */
+  for (i = nForward - nReverse  - 1; i >= 0; -- i)
+   {
+     score = oes = nMatch = 0;
+     for (j = 0; j < nReverse; ++ j)
+      {
+        scoring_ef_nm (forward->data[i + j], 
+                       reverse->data[j], 
+                       forward->qscore[i + j], 
+                       reverse->qscore[j], 
+                       sw->score_method, 
+                       &score, 
+                       &oes, 
+                       ef);
+        if (forward->data[i + j] == reverse->data[j]) ++nMatch;
+      }
+
+     if (score > best_score)
+      {
+        bestScoreCase = PEAR_MERGE_TRIM_FORWARD;
+        best_overlap  = i;
+        best_score    = score;
+        best_oes      = oes;
+      }
+   }
+  /* compute score for runthrough case */
+  /*          -------------->
+  *          <------
+  *    ....
+  *          ------------->
+  *    <------
+  */
+  for (i = nReverse - 1; i > 0; -- i)
+   {
+     score = oes = nMatch = 0;
+     for (j = 0; j < i; ++ j)
+      {
+        scoring_ef_nm (forward->data[j], 
+                       reverse->data[nReverse - i  + j], 
+                       forward->qscore[j], 
+                       reverse->qscore[nReverse - i + j], 
+                       sw->score_method, 
+                       &score, 
+                       &oes, 
+                       ef);
+        if (forward->data[j] == reverse->data[nReverse - i + j]) ++nMatch;
+      }
+     if (score > best_score)
+      {
+        bestScoreCase = PEAR_MERGE_TRIM_BOTH;
+        best_overlap  = i;
+        best_score    = score;
+        best_oes      = oes;
+      }
+   }
+
+  if (sw->test == 1) 
+    st_pass = stat_test2 (sw->p_value, best_oes, sw->min_overlap, ef->q);
+  else
+    st_pass = stat_test2 (sw->p_value, best_oes, best_overlap, ef->q);
+
+  if (!st_pass) return (0);
+  
+  /* TODO PART */
+
+  switch (bestScoreCase)
+   {
+     case PEAR_MERGE_NO_TRIM:
+       if (best_overlap == 0)
+        {
+          assert(0);
+          asm_len = nForward + nReverse;
+
+          for (j = 0; j < nForward; ++ j)
+            if (forward->data[j] == 'N' || forward->data[j] == 'n')  ++uncalled;
+          for (j = 0; j < nReverse; ++ j)
+            if (reverse->data[j] == 'N' || reverse->data[j] == 'n')  ++uncalled;
+          uncalled /= (nForward + nReverse);
+
+          if (0 >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
+           {
+             PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_BOTH);
+           }
+          else
+           {
+             return (0);
+           }
+        }
+       else
+        {
+          asm_len = nForward + nReverse - best_overlap;
+
+          /* count uncalled bases in the non-overlapping high-quality part of the forward read */
+          for (j = 0; j < nForward - best_overlap; ++ j)
+            if (forward->data[j] == 'N' || forward->data[j] == 'n')  ++uncalled;
+
+          /* count uncalled bases in the non-overlapping high-quality part of the reverse read */
+          for (j = best_overlap; j < nReverse; ++ j)
+            if (reverse->data[j] == 'N' || reverse->data[j] == 'n')  ++uncalled;
+
+          /* count the uncalled bases in the overlapping part of the two reads */
+          for (j = nForward - best_overlap; j < nForward; ++ j)
+            if ((forward->data[j] == 'N' || forward->data[j] == 'n') && (reverse->data[j - nForward + best_overlap] == 'N' || reverse->data[j - nForward + best_overlap] == 'n'))  ++uncalled;
+          uncalled /= asm_len;
+
+          if (nForward + nReverse - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
+           {
+             if (asm_len > nForward)
+               PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_BOTH);   /* The merged read will require both memory buffers (forward + reverse) */
+             else
+               PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_SINGLE); /* The merged read will fit inside the forward read mem buffer */
+               
+             
+             assemble_overlap (forward, reverse, nForward - best_overlap, 0, best_overlap, forward, sw->phred_base);
+             memmove (reverse->data,   reverse->data   + best_overlap,  nReverse - best_overlap);
+             memmove (reverse->qscore, reverse->qscore + best_overlap,  nReverse - best_overlap);
+
+             reverse->data[nReverse   - best_overlap] = 0;
+             reverse->qscore[nReverse - best_overlap] = 0;
+           }
+          else
+           {
+             return (0);
+           }
+        }
+       break;
+     case PEAR_MERGE_TRIM_FORWARD:
+       /* note that here best_overlap refers to the position of the first byte of the overlapping region
+          in the forward read */
+       asm_len = best_overlap + nReverse;
+
+       /* count uncalled bases in the non-overlapping high-quality part of the forward read */
+       for (j = 0; j < best_overlap; ++ j)
+         if (forward->data[j] == 'N' || forward->data[j] == 'n')  ++uncalled;
+
+       /* count the uncalled bases in the overlapping part of the two reads */
+       for (j = best_overlap; j < best_overlap + nReverse; ++ j)
+         if ((forward->data[j] == 'N' || forward->data[j] == 'n') && (reverse->data[j - nReverse - best_overlap] == 'N' || reverse->data[j - nReverse - best_overlap] == 'n'))  ++uncalled;
+       uncalled /= asm_len;
+
+       if (nReverse >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
+        {
+          PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_SINGLE); /* The merged read will fit inside the forward read mem buffer */
+          
+          assemble_overlap (forward, reverse, best_overlap, 0, nReverse, forward, sw->phred_base);
+
+          forward->data[best_overlap + nReverse]   = 0;
+          forward->qscore[best_overlap + nReverse] = 0;
+        }
+       else
+        {
+          return (0);
+        }
+       break;
+     case PEAR_MERGE_TRIM_BOTH:
+       asm_len = best_overlap;
+       
+       /* compute uncalled */
+       for (j = 0; j < asm_len; ++ j)
+         if ((forward->data[j] == 'N' || forward->data[j] == 'n') && (reverse->data[nReverse - best_overlap + j] == 'N' || reverse->data[nReverse - best_overlap + j] == 'n')) ++uncalled;
+       uncalled /= asm_len;
+
+       if (asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
+        {
+          assemble_overlap (forward, reverse, 0, nReverse - best_overlap, best_overlap, forward, sw->phred_base);
+          
+          forward->data[best_overlap]   = 0;
+          forward->qscore[best_overlap] = 0;
+          PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_SINGLE);   /* flag that it's one piece */
+        }
+       else
+        {
+          return (0);
+        }
+       break;
+
+   }
+
+  return (1);
+
+}
+
+inline int
+assembly_READS_EQUAL (fastqRead * forward, fastqRead * reverse, struct emp_freq * ef, struct user_args  * sw, int n)
+{
+  int 
+    i,
+    j;
+  double
+    score = 0,
+    oes = 0,
+    best_score = 0,
+    best_oes = 0,
+    uncalled = 0;
+  int
+    best_overlap = 0,       /* overlap of the best alignment */
+    nMatch,
+    asm_len = 0,
+    st_pass,
+    run_through = 0;
+
+  /* compute score for every overlap */
+  for (i = 0; i <= n; ++ i)    /* the size of the overlap */
+   {     
+     nMatch = score = oes = 0;
+     for (j = 0; j < i; ++ j)
+      {
+        scoring_ef_nm (forward->data[n - i + j], 
+                       reverse->data[j], 
+                       forward->qscore[n - i + j], 
+                       reverse->qscore[j], 
+                       sw->score_method, 
+                       &score, 
+                       &oes, 
+                       ef);
+        if (forward->data[n - i + j] == reverse->data[j]) ++nMatch;
       }
      if (score > best_score)
       {
@@ -1063,14 +1311,18 @@ assembly_ef (struct read_t * left, struct read_t * right, struct emp_freq * ef, 
   /* compute for score for runthrough case */
   for (i = n - 1; i > 0; --i)
    {
-     score  = 0;
-     oes    = 0;
-     nMatch = 0;
+     score = oes = nMatch = 0;
      for (j = 0; j < i; ++j)
       {
-        //scoring_ef (left->data[j], right->data[n - i + j], left->qscore[j], right->qscore[n - i + j], sw->score_method, &score, &oes, match_score, mismatch_score, ef);
-        scoring_ef_nm (left->data[j], right->data[n - i + j], left->qscore[j], right->qscore[n - i + j], sw->score_method, &score, &oes, ef);
-        if (left->data[n - i + j] == right->data[j]) ++nMatch;
+        scoring_ef_nm (forward->data[j],
+                       reverse->data[n - i + j], 
+                       forward->qscore[j], 
+                       reverse->qscore[n - i + j], 
+                       sw->score_method, 
+                       &score, 
+                       &oes, 
+                       ef);
+        if (forward->data[n - i + j] == reverse->data[j]) ++nMatch;
       }
 
      if (score > best_score)
@@ -1082,15 +1334,13 @@ assembly_ef (struct read_t * left, struct read_t * right, struct emp_freq * ef, 
       }
    }
 
-
+  /** NOW LET'S MERGE */
   if (sw->test == 1)
    {
-     //st_pass = stat_test2 (sw->p_value, best_score, sw->min_overlap, ef->q);
      st_pass = stat_test2 (sw->p_value, best_oes, sw->min_overlap, ef->q);
    }
   else
    {
-     //st_pass = stat_test2 (sw->p_value, best_score, best_overlap, ef->q);
      st_pass = stat_test2 (sw->p_value, best_oes, best_overlap, ef->q);
    }
 
@@ -1105,14 +1355,14 @@ assembly_ef (struct read_t * left, struct read_t * right, struct emp_freq * ef, 
         asm_len = 2 * n;
 
         for (j = 0; j < n; ++ j)
-          if (left->data[j] == 'N' || left->data[j] == 'n')  ++uncalled;
+          if (forward->data[j] == 'N' || forward->data[j] == 'n')  ++uncalled;
         for (j = 0; j < n; ++ j)
-          if (right->data[j] == 'N' || right->data[j] == 'n')  ++uncalled;
+          if (reverse->data[j] == 'N' || reverse->data[j] == 'n')  ++uncalled;
         uncalled /= asm_len;
 
         if (2 * n - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
          {
-           PEAR_SET_OUT_TYPE(left,PEAR_READ_OUT_BOTH);
+           PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_BOTH);
          }
         else
          {
@@ -1124,15 +1374,15 @@ assembly_ef (struct read_t * left, struct read_t * right, struct emp_freq * ef, 
         asm_len         = n;
 
         for (j = 0; j < asm_len; ++ j)
-          if ((left->data[j] == 'N' || left->data[j] == 'n') && (right->data[j] == 'N' || right->data[j] == 'n')) ++uncalled;
+          if ((forward->data[j] == 'N' || forward->data[j] == 'n') && (reverse->data[j] == 'N' || reverse->data[j] == 'n')) ++uncalled;
         uncalled /= asm_len;
 
         if (2 * n - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
          {
-           PEAR_SET_OUT_TYPE(left,PEAR_READ_OUT_SINGLE);
-           assemble_overlap (left, right, 0, 0, n, left, sw->phred_base);
-           left->data[n]   = 0;
-           left->qscore[n] = 0;
+           PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_SINGLE);
+           assemble_overlap (forward, reverse, 0, 0, n, forward, sw->phred_base);
+           forward->data[n]   = 0;
+           forward->qscore[n] = 0;
          }
         else
          {
@@ -1143,26 +1393,26 @@ assembly_ef (struct read_t * left, struct read_t * right, struct emp_freq * ef, 
       {
         asm_len = 2 * n - best_overlap;
         for (j = 0; j < n - best_overlap; ++ j)
-          if (left->data[j] == 'N' || left->data[j] == 'n')  ++uncalled;
+          if (forward->data[j] == 'N' || forward->data[j] == 'n')  ++uncalled;
         for (j = n - best_overlap; j < n; ++ j)
-          if ((left->data[j] == 'N' || left->data[j] == 'n') && (right->data[j - n + best_overlap] == 'N' || right->data[j - n + best_overlap] == 'n'))  ++uncalled;
+          if ((forward->data[j] == 'N' || forward->data[j] == 'n') && (reverse->data[j - n + best_overlap] == 'N' || reverse->data[j - n + best_overlap] == 'n'))  ++uncalled;
         for (j = best_overlap; j < n; ++ j)
-          if (right->data[j] == 'N' || right->data[j] == 'n')  ++uncalled;
+          if (reverse->data[j] == 'N' || reverse->data[j] == 'n')  ++uncalled;
         uncalled /= asm_len;
 
         if (2 * n - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
          {
-           PEAR_SET_OUT_TYPE(left,PEAR_READ_OUT_BOTH);
+           PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_BOTH);
            
-           assemble_overlap (left, right, n - best_overlap, 0, best_overlap, left, sw->phred_base);
-           memmove (right->data,   right->data   + best_overlap,  n - best_overlap);
-           memmove (right->qscore, right->qscore + best_overlap,  n - best_overlap);
+           assemble_overlap (forward, reverse, n - best_overlap, 0, best_overlap, forward, sw->phred_base);
+           memmove (reverse->data,   reverse->data   + best_overlap,  n - best_overlap);
+           memmove (reverse->qscore, reverse->qscore + best_overlap,  n - best_overlap);
            /* THIS IS WRONG */
-           //memcpy (right->data,   right->data   + best_overlap,  n - best_overlap);
-           //memcpy (right->qscore, right->qscore + best_overlap,  n - best_overlap);
+           //memcpy (reverse->data,   reverse->data   + best_overlap,  n - best_overlap);
+           //memcpy (reverse->qscore, reverse->qscore + best_overlap,  n - best_overlap);
 
-           right->data[n   - best_overlap] = 0;
-           right->qscore[n - best_overlap] = 0;
+           reverse->data[n   - best_overlap] = 0;
+           reverse->qscore[n - best_overlap] = 0;
          }
         else
          {
@@ -1176,16 +1426,16 @@ assembly_ef (struct read_t * left, struct read_t * right, struct emp_freq * ef, 
      
      /* compute uncalled */
      for (j = 0; j < asm_len; ++ j)
-       if ((left->data[j] == 'N' || left->data[j] == 'n') && (right->data[n - best_overlap + j] == 'N' || right->data[n - best_overlap + j] == 'n')) ++uncalled;
+       if ((forward->data[j] == 'N' || forward->data[j] == 'n') && (reverse->data[n - best_overlap + j] == 'N' || reverse->data[n - best_overlap + j] == 'n')) ++uncalled;
      uncalled /= asm_len;
 
      if (asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
       {
-        assemble_overlap (left, right, 0, n - best_overlap, best_overlap, left, sw->phred_base);
+        assemble_overlap (forward, reverse, 0, n - best_overlap, best_overlap, forward, sw->phred_base);
         
-        left->data[best_overlap]   = 0;
-        left->qscore[best_overlap] = 0;
-        PEAR_SET_OUT_TYPE(left,PEAR_READ_OUT_SINGLE);   /* flag that it's one piece */
+        forward->data[best_overlap]   = 0;
+        forward->qscore[best_overlap] = 0;
+        PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_SINGLE);   /* flag that it's one piece */
       }
      else
       {
@@ -1198,10 +1448,277 @@ assembly_ef (struct read_t * left, struct read_t * right, struct emp_freq * ef, 
   /* TODO: Optimize this in assemble_overlap? */
 
   return (1);
+
 }
 
 inline int
-assembly (struct read_t * left, struct read_t * right, struct user_args  * sw)
+assembly_REVERSE_LONGER (fastqRead * forward, fastqRead * reverse, struct emp_freq * ef, struct user_args  * sw, int nForward, int nReverse)
+{
+  int 
+    i,
+    j;
+  double
+    score = 0,
+    oes = 0,
+    best_score = 0,
+    best_oes = 0,
+    uncalled = 0;
+  int
+    best_overlap = 0,       /* overlap of the best alignment */
+    nMatch,
+    asm_len = 0,
+    st_pass,
+    bestScoreCase = 0;
+
+  /*   -------->
+  *            <------------
+  *    ....
+  *    ------->
+  *    <------------
+  */
+  for (i = 0; i <= nForward; ++ i)
+   {
+     nMatch = score = oes = 0;
+     for (j = 0; j < i; ++ j)
+      {
+        scoring_ef_nm (forward->data[nForward - i + j], 
+                       reverse->data[j], 
+                       forward->qscore[nForward - i + j], 
+                       reverse->qscore[j], 
+                       sw->score_method, 
+                       &score, 
+                       &oes, 
+                       ef);
+        if (forward->data[nForward - i + j] == reverse->data[j]) ++nMatch;
+      }
+     if (score > best_score)
+      {
+        bestScoreCase = PEAR_MERGE_NO_TRIM;
+        best_overlap  = i;
+        best_score    = score;
+        best_oes      = oes;
+      }
+   }
+  /*           -------->
+  *           <------------
+  *    ....
+  *         ------->
+  *    <------------
+  */
+  for (i = nReverse - nForward  - 1; i >= 0; -- i)
+   {
+     score = oes = nMatch = 0;
+     for (j = 0; j < nForward; ++ j)
+      {
+        scoring_ef_nm (forward->data[j], 
+                       reverse->data[nReverse - nForward - i + j], 
+                       forward->qscore[j], 
+                       reverse->qscore[nReverse - nForward - i + j], 
+                       sw->score_method, 
+                       &score, 
+                       &oes, 
+                       ef);
+        if (forward->data[j] == reverse->data[nReverse - nForward - i + j]) ++nMatch;
+      }
+     if (score > best_score)
+      {
+        bestScoreCase = PEAR_MERGE_TRIM_REVERSE;
+        best_overlap  = i;  /* now this is the length of the remaining part of the reverse read on the right of the overlapping region  */
+        best_score    = score;
+        best_oes      = oes;
+      }
+   }
+  /*               -------->
+  *           <------------
+  *    ....
+  *                ------->
+  *    <------------
+  */
+  for (i = nForward - 1; i > 0; -- i)
+   {
+     score = oes = nMatch = 0;
+     for (j = 0; j < i; ++ j)
+      {
+        scoring_ef_nm (forward->data[j],
+                       reverse->data[nReverse - i  + j], 
+                       forward->qscore[j], 
+                       reverse->qscore[nReverse - i + j], 
+                       sw->score_method, 
+                       &score, 
+                       &oes, 
+                       ef);
+        if (forward->data[j] == reverse->data[nReverse - i + j]) ++nMatch;
+      }
+     if (score > best_score)
+      {
+        bestScoreCase = PEAR_MERGE_TRIM_BOTH;
+        best_overlap  = i;
+        best_score    = score;
+        best_oes      = oes;
+      }
+   }
+
+  /* do a statistical test */
+  if (sw->test == 1) 
+    st_pass = stat_test2 (sw->p_value, best_oes, sw->min_overlap, ef->q);
+  else
+    st_pass = stat_test2 (sw->p_value, best_oes, best_overlap, ef->q);
+
+  if (!st_pass) return (0);
+
+  switch (bestScoreCase)
+   {
+     case PEAR_MERGE_NO_TRIM:
+       if (best_overlap == 0)
+        {
+          assert(0);
+          asm_len = nForward + nReverse;
+
+          for (j = 0; j < nForward; ++ j)
+            if (forward->data[j] == 'N' || forward->data[j] == 'n')  ++uncalled;
+          for (j = 0; j < nReverse; ++ j)
+            if (reverse->data[j] == 'N' || reverse->data[j] == 'n')  ++uncalled;
+          uncalled /= (nForward + nReverse);
+
+          if (0 >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
+           {
+             PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_BOTH);
+           }
+          else
+           {
+             return (0);
+           }
+        }
+       else
+        {
+          asm_len = nForward + nReverse - best_overlap;
+
+          /* count uncalled bases in the non-overlapping high-quality part of the forward read */
+          for (j = 0; j < nForward - best_overlap; ++ j)
+            if (forward->data[j] == 'N' || forward->data[j] == 'n')  ++uncalled;
+
+          /* count uncalled bases in the non-overlapping high-quality part of the reverse read */
+          for (j = best_overlap; j < nReverse; ++ j)
+            if (reverse->data[j] == 'N' || reverse->data[j] == 'n')  ++uncalled;
+
+          /* count the uncalled bases in the overlapping part of the two reads */
+          for (j = nForward - best_overlap; j < nForward; ++ j)
+            if ((forward->data[j] == 'N' || forward->data[j] == 'n') && (reverse->data[j - nForward + best_overlap] == 'N' || reverse->data[j - nForward + best_overlap] == 'n'))  ++uncalled;
+          uncalled /= asm_len;
+
+          if (nForward + nReverse - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
+           {
+             if (asm_len > nForward)
+               PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_BOTH);   /* The merged read will require both memory buffers (forward + reverse) */
+             else
+               PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_SINGLE); /* The merged read will fit inside the forward read mem buffer */
+               
+             
+             assemble_overlap (forward, reverse, nForward - best_overlap, 0, best_overlap, forward, sw->phred_base);
+             memmove (reverse->data,   reverse->data   + best_overlap,  nReverse - best_overlap);
+             memmove (reverse->qscore, reverse->qscore + best_overlap,  nReverse - best_overlap);
+
+             reverse->data[nReverse   - best_overlap] = 0;
+             reverse->qscore[nReverse - best_overlap] = 0;
+           }
+          else
+           {
+             return (0);
+           }
+        }
+       break;
+     case PEAR_MERGE_TRIM_REVERSE:
+       /* note that here best_overlap refers to the length of the remaining part right of the overlapping regionn
+          in the reverse read */
+       asm_len = best_overlap + nForward;
+
+       /* count uncalled bases in the non-overlapping high-quality part of the reverse read */
+       for (j = nReverse - best_overlap; j < nReverse; ++ j)
+         if (reverse->data[j] == 'N' || reverse->data[j] == 'n')  ++uncalled;
+
+       /* count the uncalled bases in the overlapping part of the two reads */
+       for (j = 0; j < nForward; ++ j)
+         if ((forward->data[j] == 'N' || forward->data[j] == 'n') && (reverse->data[nReverse - best_overlap - nForward + j] == 'N' || reverse->data[nReverse - best_overlap -nForward + j] == 'n'))  ++uncalled;
+       uncalled /= asm_len;
+
+       if (nForward >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
+        {
+          PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_BOTH);
+          
+          assemble_overlap (forward, reverse, 0, nReverse - nForward - best_overlap, nForward, forward, sw->phred_base);
+
+          memmove (reverse->data,   reverse->data + nReverse - best_overlap,   best_overlap);
+          memmove (reverse->qscore, reverse->qscore + nReverse - best_overlap, best_overlap);
+
+          reverse->data[nReverse - best_overlap]   = 0;
+          reverse->qscore[nReverse - best_overlap] = 0;
+        }
+       else
+        {
+          return (0);
+        }
+       break;
+     case PEAR_MERGE_TRIM_BOTH:
+       asm_len = best_overlap;
+       
+       /* compute uncalled */
+       for (j = 0; j < asm_len; ++ j)
+         if ((forward->data[j] == 'N' || forward->data[j] == 'n') && (reverse->data[nReverse - best_overlap + j] == 'N' || reverse->data[nReverse - best_overlap + j] == 'n')) ++uncalled;
+       uncalled /= asm_len;
+
+       if (asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
+        {
+          assemble_overlap (forward, reverse, 0, nReverse - best_overlap, best_overlap, forward, sw->phred_base);
+          
+          forward->data[best_overlap]   = 0;
+          forward->qscore[best_overlap] = 0;
+          PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_SINGLE);   /* flag that it's one piece */
+        }
+       else
+        {
+          return (0);
+        }
+       break;
+   }
+
+  return (1);
+  
+}
+
+
+inline int
+assembly_ef (fastqRead * forward, fastqRead * reverse, struct emp_freq * ef, struct user_args  * sw)
+{
+  int
+    nForward, 
+    nReverse,
+    rc;
+  
+  nForward = strlen (forward->data);
+  nReverse = strlen (reverse->data);
+
+  /************************* |FORWARD| > |REVERSE| ********************************/
+  if (nForward > nReverse)
+   {
+     rc = assembly_FORWARD_LONGER (forward, reverse, ef, sw, nForward, nReverse);
+   }
+
+  /************************* |FORWARD| == |REVERSE| ********************************/
+  else if (nForward == nReverse)
+   {
+     rc = assembly_READS_EQUAL (forward, reverse, ef, sw, nForward);
+   }
+  /************************* |FORWARD| < |REVERSE| ********************************/
+  else
+   {
+     rc = assembly_REVERSE_LONGER (forward, reverse, ef, sw, nForward, nReverse);
+   }
+
+  return (rc);
+}
+
+inline int
+assembly (fastqRead * left, fastqRead * right, struct user_args  * sw)
 {
   int                   i,j;
   int                   n;
@@ -1379,8 +1896,28 @@ assembly (struct read_t * left, struct read_t * right, struct user_args  * sw)
   return (1);
 }
 
+/** @brief Assemble the overlap
+
+    @param left
+    @param right
+    
+    @param base_left
+      Position in the forward read where the overlap starts
+    
+    @param base_right
+      Position in the reverse read where the overlap starts
+    
+    @param ol_size
+      Overlap size
+
+    @param ai
+      Buffer where to store the merge read
+
+    @param phred_base
+*/
+
 double
-assemble_overlap (struct read_t * left, struct read_t * right, int base_left, int base_right, int ol_size, struct read_t * ai, int phred_base)
+assemble_overlap (fastqRead * left, fastqRead * right, int base_left, int base_right, int ol_size, fastqRead * ai, int phred_base)
 {
   int           i; 
   char          x, y;
@@ -1533,7 +2070,7 @@ makefilename (const char * prefix, const char * suffix)
  *  @param fd
  *     Array of file descriptors of output files
  */
-void write_data (struct read_t ** fwd, struct read_t ** rev, unsigned int elms, FILE ** fd)
+void write_data (fastqRead ** fwd, fastqRead ** rev, unsigned int elms, FILE ** fd)
 {
   int i;
   char bothOut;   /* this is set if both fwd[i] and rev[i] contain the resulting assembled read and qscore */
@@ -1595,8 +2132,8 @@ void write_data (struct read_t ** fwd, struct read_t ** rev, unsigned int elms, 
 
 void flip_list (void)
 {
-  struct blockinfo_t * elm1;
-  struct blockinfo_t * elm2;
+  memBlockInfo * elm1;
+  memBlockInfo * elm2;
 
   elm1 = thr_global.xblock;
   elm2 = thr_global.yblock;
@@ -1605,7 +2142,7 @@ void flip_list (void)
   thr_global.yblock = elm1;
 }
 
-inline int assign_reads (struct blockinfo_t * block, struct thread_local_t * thr_local)
+inline int assign_reads (memBlockInfo * block, struct thread_local_t * thr_local)
 {
   int r;
 
@@ -1940,12 +2477,12 @@ void * entry_point (void * data)
 
 void init_thr_global (void)
 {
-  thr_global.xblock = (struct blockinfo_t *) calloc (1,sizeof(struct blockinfo_t));
-  thr_global.yblock = (struct blockinfo_t *) calloc (1,sizeof(struct blockinfo_t));
-  thr_global.xblock->fwd = (struct block_t *) calloc (1,sizeof(struct block_t));
-  thr_global.xblock->rev = (struct block_t *) calloc (1,sizeof(struct block_t));
-  thr_global.yblock->fwd = (struct block_t *) calloc (1,sizeof(struct block_t));
-  thr_global.yblock->rev = (struct block_t *) calloc (1,sizeof(struct block_t));
+  thr_global.xblock = (memBlockInfo *) calloc (1,sizeof(memBlockInfo));
+  thr_global.yblock = (memBlockInfo *) calloc (1,sizeof(memBlockInfo));
+  thr_global.xblock->fwd = (memBlock *) calloc (1,sizeof(memBlock));
+  thr_global.xblock->rev = (memBlock *) calloc (1,sizeof(memBlock));
+  thr_global.yblock->fwd = (memBlock *) calloc (1,sizeof(memBlock));
+  thr_global.yblock->rev = (memBlock *) calloc (1,sizeof(memBlock));
 
   thr_global.xblock->reads     = 0;
   thr_global.xblock->processed = 0;
@@ -2001,7 +2538,7 @@ void * emp_entry_point (void * data)
   struct thread_local_t * thr_local;
   int i, j, sleep, elms;
   struct emp_freq * ef;
-  struct read_t * reads[2];
+  fastqRead * reads[2];
   char * seq;
 
   /* initialization of values */
@@ -2261,6 +2798,7 @@ main (int argc, char * argv[])
   if (sw.emp_freqs)
    {
      printf ("Computing empirical frequencies....: ");
+     fflush (stdout);
      blockElements = db_get_next_reads (thr_global.yblock->fwd, 
                                thr_global.yblock->rev,
                                thr_global.xblock->fwd,
@@ -2332,6 +2870,8 @@ main (int argc, char * argv[])
 
   fprintf (stdout, "Assemblying reads..................: [");
   fflush (stdout);
+
+  //printf ("END DEBUG TEST\n"); //exit(1);
 
   blockElements = db_get_next_reads (thr_global.yblock->fwd, 
                             thr_global.yblock->rev,

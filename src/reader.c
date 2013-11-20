@@ -13,8 +13,8 @@ static char * mempool;
 static int eof1 = 1, eof2 = 1;
 
 /* READ_SIZE 10 and 3108 was the fastest till now */
-//struct block_t fwd_block;
-//struct block_t rev_block;
+//memBlock fwd_block;
+//memBlock rev_block;
 
 unsigned int rcount = 0;
 
@@ -55,9 +55,9 @@ void comp_mem (size_t memsize, size_t * reads_count, size_t * rawdata_size)
 
   x = memsize;
   y = READ_SIZE;
-  z = sizeof (struct read_t);
+  z = sizeof (fastqRead);
 
-  u = (size_t) ((double)x / (sizeof(struct read_t *) + y + z));
+  u = (size_t) ((double)x / (sizeof(fastqRead*) + y + z));
 
   *reads_count = u;
   *rawdata_size = u * y;
@@ -70,8 +70,8 @@ void rewind_files (void)
   eof1 = eof2 = 1;
 }
 
-void init_fastq_reader_double_buffer (const char * file1, const char * file2, size_t memsize, struct block_t * pri_fwd, struct block_t * pri_rev, 
-struct block_t * sec_fwd, struct block_t * sec_rev)
+void init_fastq_reader_double_buffer (const char * file1, const char * file2, size_t memsize, memBlock * pri_fwd, memBlock * pri_rev, 
+memBlock * sec_fwd, memBlock * sec_rev)
 {
   size_t reads_count;
   size_t rawdata_size;
@@ -105,7 +105,7 @@ struct block_t * sec_fwd, struct block_t * sec_rev)
 
   #ifdef __DEBUG__
   printf ("Size of reads structure: ");
-  print_number(reads_count * sizeof(struct read_t) + reads_count * sizeof(struct read_t *)); 
+  print_number(reads_count * sizeof(fastqRead) + reads_count * sizeof(fastqRead *)); 
   printf ("\n");
   #endif
 
@@ -117,7 +117,7 @@ struct block_t * sec_fwd, struct block_t * sec_rev)
 
   #ifdef __DEBUG__
   printf ("Size of used memory: ");
-  used_mem = 2 * (rawdata_size + reads_count * sizeof(struct read_t) + reads_count * sizeof(struct read_t *));
+  used_mem = 2 * (rawdata_size + reads_count * sizeof(fastqRead) + reads_count * sizeof(fastqRead *));
   print_number(used_mem);
   printf ("\n");
   #endif
@@ -166,51 +166,52 @@ struct block_t * sec_fwd, struct block_t * sec_rev)
 
 
   /* reserve area from mempool for the forwards reads */
-  pri_fwd->reads = (struct read_t **) mempool;
-  mem_start        = mempool + reads_count * sizeof (struct read_t *);
+  pri_fwd->reads  = (fastqRead **) mempool;
+  mem_start       = mempool + reads_count * sizeof (fastqRead *);
   for (i = 0; i < reads_count; ++ i)
    {
-     pri_fwd->reads[i] = (struct read_t *) (mem_start + i * sizeof (struct read_t));
+     pri_fwd->reads[i] = (fastqRead *) (mem_start + i * sizeof (fastqRead));
    }
-  pri_fwd->rawdata     = (char *)(mem_start + reads_count * sizeof (struct read_t));
+  pri_fwd->rawdata     = (char *)(mem_start + reads_count * sizeof (fastqRead));
   pri_fwd->rawdata_end = pri_fwd->rawdata + pri_fwd->rawdata_size;
 
   /* reserve area from mempool for the backward reads */
   mem_start  = pri_fwd->rawdata_end;
-  pri_rev->reads = (struct read_t **) mem_start;
-  mem_start  = mem_start + reads_count * sizeof (struct read_t *);
+  pri_rev->reads = (fastqRead **) mem_start;
+  mem_start  = mem_start + reads_count * sizeof (fastqRead *);
   for (i = 0; i < reads_count; ++ i)
    {
-     pri_rev->reads[i] = (struct read_t *) (mem_start + i * sizeof (struct read_t));
+     pri_rev->reads[i] = (fastqRead *) (mem_start + i * sizeof (fastqRead));
    }
-  pri_rev->rawdata     = (char *)(mem_start + reads_count * sizeof (struct read_t));
+  pri_rev->rawdata     = (char *)(mem_start + reads_count * sizeof (fastqRead));
   pri_rev->rawdata_end = pri_rev->rawdata + pri_rev->rawdata_size;
 
   pri_fwd->unread = pri_rev->unread = NULL;
+  pri_fwd->nExtraReads = pri_rev->nExtraReads = 0;
   
 
   /* double buffering */
 
   dbmem = mempool + memsize / 2;
   /* reserve area from mempool for the forwards reads */
-  sec_fwd->reads = (struct read_t **) dbmem;
-  mem_start        = dbmem + reads_count * sizeof (struct read_t *);
+  sec_fwd->reads = (fastqRead **) dbmem;
+  mem_start        = dbmem + reads_count * sizeof (fastqRead *);
   for (i = 0; i < reads_count; ++ i)
    {
-     sec_fwd->reads[i] = (struct read_t *) (mem_start + i * sizeof (struct read_t));
+     sec_fwd->reads[i] = (fastqRead *) (mem_start + i * sizeof (fastqRead));
    }
-  sec_fwd->rawdata     = (char *)(mem_start + reads_count * sizeof (struct read_t));
+  sec_fwd->rawdata     = (char *)(mem_start + reads_count * sizeof (fastqRead));
   sec_fwd->rawdata_end = sec_fwd->rawdata + sec_fwd->rawdata_size;
 
   /* reserve area from mempool for the backward reads */
   mem_start  = sec_fwd->rawdata_end;
-  sec_rev->reads = (struct read_t **) mem_start;
-  mem_start  = mem_start + reads_count * sizeof (struct read_t *);
+  sec_rev->reads = (fastqRead **) mem_start;
+  mem_start  = mem_start + reads_count * sizeof (fastqRead *);
   for (i = 0; i < reads_count; ++ i)
    {
-     sec_rev->reads[i] = (struct read_t *) (mem_start + i * sizeof (struct read_t));
+     sec_rev->reads[i] = (fastqRead *) (mem_start + i * sizeof (fastqRead));
    }
-  sec_rev->rawdata     = (char *)(mem_start + reads_count * sizeof (struct read_t));
+  sec_rev->rawdata     = (char *)(mem_start + reads_count * sizeof (fastqRead));
   sec_rev->rawdata_end = sec_rev->rawdata + sec_rev->rawdata_size;
 
   sec_fwd->unread = sec_rev->unread = NULL;
@@ -222,7 +223,7 @@ struct block_t * sec_fwd, struct block_t * sec_rev)
 
 
 void 
-init_fastq_reader (const char * file1, const char * file2, size_t memsize, struct block_t * fwd, struct block_t * rev)
+init_fastq_reader (const char * file1, const char * file2, size_t memsize, memBlock * fwd, memBlock * rev)
 {
   size_t reads_count;
   size_t rawdata_size;
@@ -253,7 +254,7 @@ init_fastq_reader (const char * file1, const char * file2, size_t memsize, struc
 
   #ifdef __DEBUG__
   printf ("Size of reads structure: ");
-  print_number(reads_count * sizeof(struct read_t) + reads_count * sizeof(struct read_t *)); 
+  print_number(reads_count * sizeof(fastqRead) + reads_count * sizeof(fastqRead *)); 
   printf ("\n");
   #endif
 
@@ -265,7 +266,7 @@ init_fastq_reader (const char * file1, const char * file2, size_t memsize, struc
 
   #ifdef __DEBUG__
   printf ("Size of used memory: ");
-  used_mem = 2 * (rawdata_size + reads_count * sizeof(struct read_t) + reads_count * sizeof(struct read_t *));
+  used_mem = 2 * (rawdata_size + reads_count * sizeof(fastqRead) + reads_count * sizeof(fastqRead *));
   print_number(used_mem);
   printf ("\n");
   #endif
@@ -289,24 +290,24 @@ init_fastq_reader (const char * file1, const char * file2, size_t memsize, struc
 
 
   /* reserve area from mempool for the forwards reads */
-  fwd->reads = (struct read_t **) mempool;
-  mem_start        = mempool + reads_count * sizeof (struct read_t *);
+  fwd->reads = (fastqRead **) mempool;
+  mem_start        = mempool + reads_count * sizeof (fastqRead *);
   for (i = 0; i < reads_count; ++ i)
    {
-     fwd->reads[i] = (struct read_t *) (mem_start + i * sizeof (struct read_t));
+     fwd->reads[i] = (fastqRead *) (mem_start + i * sizeof (fastqRead));
    }
-  fwd->rawdata     = (char *)(mem_start + reads_count * sizeof (struct read_t));
+  fwd->rawdata     = (char *)(mem_start + reads_count * sizeof (fastqRead));
   fwd->rawdata_end = fwd->rawdata + fwd->rawdata_size;
 
   /* reserve area from mempool for the backward reads */
   mem_start  = fwd->rawdata_end;
-  rev->reads = (struct read_t **) mem_start;
-  mem_start  = mem_start + reads_count * sizeof (struct read_t *);
+  rev->reads = (fastqRead **) mem_start;
+  mem_start  = mem_start + reads_count * sizeof (fastqRead *);
   for (i = 0; i < reads_count; ++ i)
    {
-     rev->reads[i] = (struct read_t *) (mem_start + i * sizeof (struct read_t));
+     rev->reads[i] = (fastqRead *) (mem_start + i * sizeof (fastqRead));
    }
-  rev->rawdata     = (char *)(mem_start + reads_count * sizeof (struct read_t));
+  rev->rawdata     = (char *)(mem_start + reads_count * sizeof (fastqRead));
   rev->rawdata_end = rev->rawdata + rev->rawdata_size;
 
   fwd->unread = rev->unread = NULL;
@@ -330,46 +331,84 @@ destroy_reader (void)
 /* Parse a block to a reads struct and return a pointer to the last unprocessed
    read, if such one exists */
 inline unsigned long
-parse_block (struct block_t * block)
+parse_block (memBlock * block)
 {
-  int phase;
-  char * ptr;
-  unsigned int elms;
-  char * offset;
-  char * ignore = NULL;
+  int 
+    phase,
+    i,
+    k = 0;
+  char
+    * ptr,
+    * offset,
+    * startAddress,
+    * ignore = NULL;
+  unsigned int 
+    elms;
+  static int times = 0;
 
-  phase = elms = 0;
+  ++ times;
 
-  block->unread = ptr = block->rawdata;
-  for (offset = block->rawdata; offset != block->rawdata_end && *offset; ++ offset)
+  startAddress = block->unread = ptr = block->rawdata;
+  elms = 0;
+  if (block->nExtraReads)
    {
+     for (i = 0; i < block->nExtraReads; ++ i)
+      {
+        while (!*ptr) ++ ptr;   /* skip all blanks which were previously converted to zeros */
+        block->reads[i]->header = ptr;
+        while (*ptr) ++ptr;     /* skip the header */
+        while (!*ptr) ++ ptr;   /* skip all blanks which were previously converted to zeros */
+        block->reads[i]->data= ptr;
+        while (*ptr) ++ptr;     /* skip the sequence */
+        while (!*ptr) ++ ptr;   /* skip all blanks which were previously converted to zeros */
+        while (*ptr) ++ptr;     /* skip the  + */
+        while (!*ptr) ++ ptr;   /* skip all blanks which were previously converted to zeros */
+        block->reads[i]->qscore= ptr;
+        while (*ptr) ++ptr;     /* skip the  quality score */
+      }
+
+     elms = block->nExtraReads;
+     block->nExtraReads = 0;
+     while (!*ptr && ptr != block->rawdata_end) ++ ptr; 
+     startAddress = block->unread = ptr;
+   }
+
+
+  phase = PEAR_PARSE_PHASE_HEADER;
+
+//printf ("!Rawdata size is %d\n", block->rawdata_size);
+  for (offset = startAddress; offset != block->rawdata_end && *offset; ++ offset)
+   {
+//     if (times ==3) printf ("running %d letter is ASCII %d CHAR %c\n", ++k, *offset, *offset);
+//     if (times ==3 && k == 52) printf ("next is %d %c\n", *(offset+1), *(offset+1));
      if (*offset == '\n')
       {
-        if (phase == 2 && offset - 1 == ptr && (*(offset - 1) != '+'))
+//        if (times == 3) printf ("Reached this!! \n");
+        if (phase == PEAR_PARSE_PHASE_PLUS_SIGN && offset - 1 == ptr && (*(offset - 1) != '+'))
          {
            fprintf (stderr, "Entry is missing\n");
            abort();
          }
-        else if (phase != 2 && offset - ptr <=2)
+        else if (phase != PEAR_PARSE_PHASE_PLUS_SIGN && offset - ptr <= 2)
          {
            fprintf (stderr, "Entry is missing\n");
            abort();
          }
         switch (phase)
          {
-           case 0:
+           case PEAR_PARSE_PHASE_HEADER:
              block->reads[elms]->header = ptr;
-             ++phase;
+             phase = PEAR_PARSE_PHASE_SEQUENCE;
              break;
-           case 1:
+           case PEAR_PARSE_PHASE_SEQUENCE:
              block->reads[elms]->data   = ptr;
-             ++phase;
+             phase = PEAR_PARSE_PHASE_PLUS_SIGN;
              ignore = offset;
              break;
-           case 2:
-             ++phase;
+           case PEAR_PARSE_PHASE_PLUS_SIGN:
+             phase = PEAR_PARSE_PHASE_QUALITY_VALS;
              break;
-           case 3:
+           case PEAR_PARSE_PHASE_QUALITY_VALS:
              block->reads[elms]->qscore = ptr;
              /* clear up newlines */
              if (*(block->reads[elms]->data - 1) == '\r' || (*(block->reads[elms]->data - 1) == '\n'))
@@ -396,7 +435,7 @@ parse_block (struct block_t * block)
               {
                 *offset = 0;
               }
-             phase = 0;
+             phase = PEAR_PARSE_PHASE_HEADER;
              *ignore = 0;
              ++elms;
              block->unread = offset + 1;
@@ -410,10 +449,12 @@ parse_block (struct block_t * block)
       }
    }
 
+//  if (times == 3) printf ("ELMS!! = %d\n", elms);
+
   return elms;
 }
 
-int db_read_fastq_block (struct block_t * block, FILE * fp, struct block_t * old_block)
+int db_read_fastq_block (memBlock * block, FILE * fp, memBlock * old_block)
 {
   int nBytes;
   size_t remainder;
@@ -424,7 +465,7 @@ int db_read_fastq_block (struct block_t * block, FILE * fp, struct block_t * old
   /* Check if we do not have a large block that could not be read in one read */
   if (old_block->unread == old_block->rawdata)
    {
-     fprintf (stderr, "Error, too large read? Allocate more mem...");
+     fprintf (stderr, "2 Error, too large read? Allocate more mem...");
      abort ();
    }
 
@@ -433,6 +474,8 @@ int db_read_fastq_block (struct block_t * block, FILE * fp, struct block_t * old
    {
      remainder = (size_t) (old_block->rawdata_end - old_block->unread);
      memcpy (block->rawdata, old_block->unread, remainder); 
+     block->nExtraReads = old_block->nExtraReads;
+     old_block->nExtraReads = 0;
    }
   
   /* TODO: Check this line again for correctness */
@@ -453,9 +496,10 @@ int db_read_fastq_block (struct block_t * block, FILE * fp, struct block_t * old
   return (1);
 }
 
-unsigned int db_get_next_reads (struct block_t * fwd_block, struct block_t * rev_block, struct block_t * old_fwd_block, struct block_t * old_rev_block, int * sanity)
+unsigned int db_get_next_reads (memBlock * fwd_block, memBlock * rev_block, memBlock * old_fwd_block, memBlock * old_rev_block, int * sanity)
 {
   unsigned int n1, n2;
+  int i;
 
 //  if (!eof1 || !eof2) return (0);
 
@@ -465,6 +509,19 @@ unsigned int db_get_next_reads (struct block_t * fwd_block, struct block_t * rev
   n1 = parse_block (fwd_block);
   n2 = parse_block (rev_block);
 
+//printf ("!!! %d\n", n2);
+//  for (i = 0; i < n2; ++ i)
+//    printf ("%s\n%s\n+\n%s\n", rev_block->reads[i]->header,
+//                               rev_block->reads[i]->data,
+//                               rev_block->reads[i]->qscore);
+
+  /*i = 0;
+  printf ("Read 1 from forward\n");
+      printf ("%s\n%s\n%s\n%s\n\n", fwd_block->reads[i]->header, fwd_block->reads[i]->data, fwd_block->reads[i]->qscore - 2, fwd_block->reads[i]->qscore);
+
+
+      exit(1);
+*/
   if (!eof1 && n2 > n1)
    {
      *sanity = PEAR_REVERSE_LARGER;
@@ -474,23 +531,26 @@ unsigned int db_get_next_reads (struct block_t * fwd_block, struct block_t * rev
    {
      *sanity = PEAR_FORWARD_LARGER;
    }
-  
+
+  fwd_block->nExtraReads = rev_block->nExtraReads = 0;
   /* align reads if different count selected */
   if (n1 != n2)
    {
      if (!n1 || !n2)
       {
-        fprintf (stderr, "Problem, number of reads does not match!\n");
+        fprintf (stderr, "1 Problem, number of reads does not match! n1 = %d n2 = %d\n", n1, n2);
         abort();
       }
      if (n1 > n2)
       {
         fwd_block->unread = fwd_block->reads[n2]->header;
+        fwd_block->nExtraReads = n1 - n2;
         n1 = n2;
       }
      else
       {
         rev_block->unread = rev_block->reads[n1]->header;
+        rev_block->nExtraReads = n2 - n1;
         n2 = n1;
       }
    }
@@ -503,8 +563,8 @@ int main (int argc, char * argv[])
   uint32_t data[4];
   do_cpuid (0, data);
   int elms;
-  struct block_t fwd_block;
-  struct block_t rev_block;
+  memBlock fwd_block;
+  memBlock rev_block;
 
   printf("maxcpuid = 0x%x\n", data[0]);
       printf("vendor = %4.4s%4.4s%4.4s\n", (char *) &data[1], (char *)&data[3], (char *)&data[2]);
@@ -531,7 +591,7 @@ int main (int argc, char * argv[])
 }
 */
 
-int get_next_reads (struct block_t * fwd_block, struct block_t * rev_block)
+int get_next_reads (memBlock * fwd_block, memBlock * rev_block)
 {
   int n1, n2;
   int eof1 = 1, eof2 = 1;
@@ -568,7 +628,7 @@ int get_next_reads (struct block_t * fwd_block, struct block_t * rev_block)
 }
 
 
-void print_reads (struct read_t ** fwd, struct read_t ** rev, int elms)
+void print_reads (fastqRead ** fwd, fastqRead ** rev, int elms)
 {
   int i;
 
@@ -579,7 +639,7 @@ void print_reads (struct read_t ** fwd, struct read_t ** rev, int elms)
    }
 }
 
-int read_fastq_block (struct block_t * block, FILE * fp)
+int read_fastq_block (memBlock * block, FILE * fp)
 {
   int nBytes;
   size_t remainder;
@@ -590,7 +650,7 @@ int read_fastq_block (struct block_t * block, FILE * fp)
   /* Check if we do not have a large block that could not be read in one read */
   if (block->unread == block->rawdata)
    {
-     fprintf (stderr, "Error, too large read? Allocate more mem...");
+     fprintf (stderr, "1 Error, too large read? Allocate more mem...");
      abort ();
    }
 
