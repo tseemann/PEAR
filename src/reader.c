@@ -336,7 +336,6 @@ parse_block (memBlock * block)
   int 
     phase,
     i,
-    k = 0;
   char
     * ptr,
     * offset,
@@ -344,9 +343,6 @@ parse_block (memBlock * block)
     * ignore = NULL;
   unsigned int 
     elms;
-  static int times = 0;
-
-  ++ times;
 
   startAddress = block->unread = ptr = block->rawdata;
   elms = 0;
@@ -379,11 +375,8 @@ parse_block (memBlock * block)
 //printf ("!Rawdata size is %d\n", block->rawdata_size);
   for (offset = startAddress; offset != block->rawdata_end && *offset; ++ offset)
    {
-//     if (times ==3) printf ("running %d letter is ASCII %d CHAR %c\n", ++k, *offset, *offset);
-//     if (times ==3 && k == 52) printf ("next is %d %c\n", *(offset+1), *(offset+1));
      if (*offset == '\n')
       {
-//        if (times == 3) printf ("Reached this!! \n");
         if (phase == PEAR_PARSE_PHASE_PLUS_SIGN && offset - 1 == ptr && (*(offset - 1) != '+'))
          {
            fprintf (stderr, "Entry is missing\n");
@@ -448,8 +441,6 @@ parse_block (memBlock * block)
         ptr = offset + 1;
       }
    }
-
-//  if (times == 3) printf ("ELMS!! = %d\n", elms);
 
   return elms;
 }
