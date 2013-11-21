@@ -24,7 +24,7 @@ read length).
 
 For more information, requests and bug-reports visit our website at 
 
-                http://www.exelixis-lab.org/pear
+                http://www.exelixis-lab.org/web/software/pear
 
 How to compile:
 ---------------
@@ -63,4 +63,4 @@ responsibility.
 
 How to cite:
 ------------
-TBA
+J. Zhang, K. Kobert, T. Flouri, A. Stamatakis. PEAR: A fast and accurate Illimuna Paired-End reAd mergeR
