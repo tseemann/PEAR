@@ -1558,8 +1558,6 @@ assembly_REVERSE_LONGER (fastqRead * forward, fastqRead * reverse, struct emp_fr
       }
    }
 
-  printf ("Our case is %d and best_overlap is %d\n", bestScoreCase, best_overlap);
-
   /* do a statistical test */
   if (sw->test == 1) 
     st_pass = stat_test2 (sw->p_value, best_oes, sw->min_overlap, ef->q);
