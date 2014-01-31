@@ -34,6 +34,7 @@ struct user_args
    int          min_trim_len; /**< @brief Minimum trim length */
    size_t       memory;       /**< @brief Amount of memory to be used */
    int          threads;      /**< @brief Number of threads to use */
+   int          cap;          /**< @brief Quality score cap value */
  };
 
 void usage (void);

@@ -81,7 +81,7 @@ static unsigned long g_count_total       = 0;
 int stat_test2 (double, double, int, double);
 
 double
-assemble_overlap (fastqRead * left, fastqRead * right, int base_left, int base_right, int ol_size, fastqRead * ai, int phred_base);
+assemble_overlap (fastqRead * left, fastqRead * right, int base_left, int base_right, int ol_size, fastqRead * ai, struct user_args * sw);
 
 /* TODO: 1. Dynamically allocate them 
  *       2. Change 256 to the allowed range and compute only the necessary values */
@@ -1196,7 +1196,7 @@ assembly_FORWARD_LONGER (fastqRead * forward, fastqRead * reverse, struct emp_fr
                PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_SINGLE); /* The merged read will fit inside the forward read mem buffer */
                
              
-             assemble_overlap (forward, reverse, nForward - best_overlap, 0, best_overlap, forward, sw->phred_base);
+             assemble_overlap (forward, reverse, nForward - best_overlap, 0, best_overlap, forward, sw);
              memmove (reverse->data,   reverse->data   + best_overlap,  nReverse - best_overlap);
              memmove (reverse->qscore, reverse->qscore + best_overlap,  nReverse - best_overlap);
 
@@ -1227,7 +1227,7 @@ assembly_FORWARD_LONGER (fastqRead * forward, fastqRead * reverse, struct emp_fr
         {
           PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_SINGLE); /* The merged read will fit inside the forward read mem buffer */
           
-          assemble_overlap (forward, reverse, best_overlap, 0, nReverse, forward, sw->phred_base);
+          assemble_overlap (forward, reverse, best_overlap, 0, nReverse, forward, sw);
 
           forward->data[best_overlap + nReverse]   = 0;
           forward->qscore[best_overlap + nReverse] = 0;
@@ -1247,7 +1247,7 @@ assembly_FORWARD_LONGER (fastqRead * forward, fastqRead * reverse, struct emp_fr
 
        if (asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
         {
-          assemble_overlap (forward, reverse, 0, nReverse - best_overlap, best_overlap, forward, sw->phred_base);
+          assemble_overlap (forward, reverse, 0, nReverse - best_overlap, best_overlap, forward, sw);
           
           forward->data[best_overlap]   = 0;
           forward->qscore[best_overlap] = 0;
@@ -1380,7 +1380,7 @@ assembly_READS_EQUAL (fastqRead * forward, fastqRead * reverse, struct emp_freq 
         if (2 * n - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
          {
            PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_SINGLE);
-           assemble_overlap (forward, reverse, 0, 0, n, forward, sw->phred_base);
+           assemble_overlap (forward, reverse, 0, 0, n, forward, sw);
            forward->data[n]   = 0;
            forward->qscore[n] = 0;
          }
@@ -1404,7 +1404,7 @@ assembly_READS_EQUAL (fastqRead * forward, fastqRead * reverse, struct emp_freq 
          {
            PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_BOTH);
            
-           assemble_overlap (forward, reverse, n - best_overlap, 0, best_overlap, forward, sw->phred_base);
+           assemble_overlap (forward, reverse, n - best_overlap, 0, best_overlap, forward, sw);
            memmove (reverse->data,   reverse->data   + best_overlap,  n - best_overlap);
            memmove (reverse->qscore, reverse->qscore + best_overlap,  n - best_overlap);
            /* THIS IS WRONG */
@@ -1431,7 +1431,7 @@ assembly_READS_EQUAL (fastqRead * forward, fastqRead * reverse, struct emp_freq 
 
      if (asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
       {
-        assemble_overlap (forward, reverse, 0, n - best_overlap, best_overlap, forward, sw->phred_base);
+        assemble_overlap (forward, reverse, 0, n - best_overlap, best_overlap, forward, sw);
         
         forward->data[best_overlap]   = 0;
         forward->qscore[best_overlap] = 0;
@@ -1614,7 +1614,7 @@ assembly_REVERSE_LONGER (fastqRead * forward, fastqRead * reverse, struct emp_fr
                PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_SINGLE); /* The merged read will fit inside the forward read mem buffer */
                
              
-             assemble_overlap (forward, reverse, nForward - best_overlap, 0, best_overlap, forward, sw->phred_base);
+             assemble_overlap (forward, reverse, nForward - best_overlap, 0, best_overlap, forward, sw);
              memmove (reverse->data,   reverse->data   + best_overlap,  nReverse - best_overlap);
              memmove (reverse->qscore, reverse->qscore + best_overlap,  nReverse - best_overlap);
 
@@ -1645,7 +1645,7 @@ assembly_REVERSE_LONGER (fastqRead * forward, fastqRead * reverse, struct emp_fr
         {
           PEAR_SET_OUT_TYPE(forward,PEAR_READ_OUT_BOTH);
           
-          assemble_overlap (forward, reverse, 0, nReverse - nForward - best_overlap, nForward, forward, sw->phred_base);
+          assemble_overlap (forward, reverse, 0, nReverse - nForward - best_overlap, nForward, forward, sw);
 
           memmove (reverse->data,   reverse->data + nReverse - best_overlap,   best_overlap);
           memmove (reverse->qscore, reverse->qscore + nReverse - best_overlap, best_overlap);
@@ -1668,7 +1668,7 @@ assembly_REVERSE_LONGER (fastqRead * forward, fastqRead * reverse, struct emp_fr
 
        if (asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
         {
-          assemble_overlap (forward, reverse, 0, nReverse - best_overlap, best_overlap, forward, sw->phred_base);
+          assemble_overlap (forward, reverse, 0, nReverse - best_overlap, best_overlap, forward, sw);
           
           forward->data[best_overlap]   = 0;
           forward->qscore[best_overlap] = 0;
@@ -1827,7 +1827,7 @@ assembly (fastqRead * left, fastqRead * right, struct user_args  * sw)
         if ((n << 1) - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
          {
            PEAR_SET_OUT_TYPE(left,PEAR_READ_OUT_SINGLE);
-           assemble_overlap (left, right, 0, 0, n, left, sw->phred_base);
+           assemble_overlap (left, right, 0, 0, n, left, sw);
            left->data[n]   = 0;
            left->qscore[n] = 0;
          }
@@ -1850,7 +1850,7 @@ assembly (fastqRead * left, fastqRead * right, struct user_args  * sw)
         if ((n << 1) - asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
          {
            PEAR_SET_OUT_TYPE(left,PEAR_READ_OUT_BOTH);
-           assemble_overlap (left, right, n - best_overlap, 0, best_overlap, left, sw->phred_base);
+           assemble_overlap (left, right, n - best_overlap, 0, best_overlap, left, sw);
            memmove (right->data,   right->data   + best_overlap,  n - best_overlap);
            memmove (right->qscore, right->qscore + best_overlap,  n - best_overlap);
            /* THIS IS WRONG */
@@ -1877,7 +1877,7 @@ assembly (fastqRead * left, fastqRead * right, struct user_args  * sw)
 
      if (asm_len >= sw->min_overlap && asm_len >= sw->min_asm_len && asm_len <= sw->max_asm_len && uncalled <= sw->max_uncalled)
       {
-        assemble_overlap (left, right, 0, n - best_overlap, best_overlap, left, sw->phred_base);
+        assemble_overlap (left, right, 0, n - best_overlap, best_overlap, left, sw);
         
         left->data[best_overlap]   = 0;
         left->qscore[best_overlap] = 0;
@@ -1917,7 +1917,7 @@ assembly (fastqRead * left, fastqRead * right, struct user_args  * sw)
 */
 
 double
-assemble_overlap (fastqRead * left, fastqRead * right, int base_left, int base_right, int ol_size, fastqRead * ai, int phred_base)
+assemble_overlap (fastqRead * left, fastqRead * right, int base_left, int base_right, int ol_size, fastqRead * ai, struct user_args * sw)
 {
   int           i; 
   char          x, y;
@@ -1955,7 +1955,7 @@ assemble_overlap (fastqRead * left, fastqRead * right, int base_left, int base_r
            //exp_match += (sc_eq[(int)qx][(int)qy] / match_score);
            
            ai->data[base_left + i] = x;
-           ai->qscore[base_left + i] = (right->qscore[base_right + i] - phred_base) + (left->qscore[base_left + i] - phred_base) + phred_base; //qs_mul[qx][qy];
+           ai->qscore[base_left + i] = (right->qscore[base_right + i] - sw->phred_base) + (left->qscore[base_left + i] - sw->phred_base) + sw->phred_base; //qs_mul[qx][qy];
          }
         else
          {
@@ -2070,10 +2070,12 @@ makefilename (const char * prefix, const char * suffix)
  *  @param fd
  *     Array of file descriptors of output files
  */
-void write_data (fastqRead ** fwd, fastqRead ** rev, unsigned int elms, FILE ** fd)
+void write_data (fastqRead ** fwd, fastqRead ** rev, unsigned int elms, FILE ** fd, struct user_args * sw)
 {
   int i;
   char bothOut;   /* this is set if both fwd[i] and rev[i] contain the resulting assembled read and qscore */
+  char * x;
+  int capval = sw->cap + sw->phred_base;
   
   for ( i = 0; i < elms; ++ i)
    {
@@ -2095,37 +2097,72 @@ void write_data (fastqRead ** fwd, fastqRead ** rev, unsigned int elms, FILE ** 
          }
         fprintf (fd[0], "+\n");
 
+        
+        x = fwd[i]->qscore;
+        if (sw->cap)
+          while (*x) 
+           {
+             if (*x > capval) *x = capval;
+             ++x;
+           }
+
         if (!bothOut)
          {
            fprintf (fd[0], "%s\n", fwd[i]->qscore);
          }
         else
          {
+           x = rev[i]->qscore;
+           if (sw->cap)
+             while (*x) 
+              {
+                if (*x > capval) *x = capval;
+                ++ x;
+              }
            fprintf (fd[0], "%s",   fwd[i]->qscore);
            fprintf (fd[0], "%s\n", rev[i]->qscore);
          }
         
         ++ g_count_assembled;
       }
-     else if (PEAR_DECODE_ASM_TYPE(fwd[i]) == PEAR_READ_DISCARDED)                                            /* discarded */
+     else 
       {
-        PEAR_RESET_ASM_TYPE(fwd[i]);
-        /* discarded reads*/
-        /* Maybe consider printing the untrimmed sequences */
-        fprintf (fd[3], "%s\n", fwd[i]->header);
-        fprintf (fd[3], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
-        fprintf (fd[3], "%s\n", rev[i]->header);
-        fprintf (fd[3], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
-        ++ g_count_discarded;
-      }
-     else   /* unassembled reads*/
-      {
-        PEAR_RESET_ASM_TYPE(fwd[i]);
-        fprintf (fd[1], "%s\n", fwd[i]->header);
-        fprintf (fd[2], "%s\n", rev[i]->header);
-        fprintf (fd[1], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
-        fprintf (fd[2], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
-        ++ g_count_unassembled;
+        if (sw->cap)
+         {
+          x = fwd[i]->qscore; 
+          while (*x) 
+           {
+             if (*x > capval) *x = capval;
+             ++ x;
+           }
+
+          x = rev[i]->qscore;
+          while (*x) 
+           {
+             if (*x > capval) *x = capval;
+             ++ x;
+           }
+         }
+        if (PEAR_DECODE_ASM_TYPE(fwd[i]) == PEAR_READ_DISCARDED)                                            /* discarded */
+         {
+           PEAR_RESET_ASM_TYPE(fwd[i]);
+           /* discarded reads*/
+           /* Maybe consider printing the untrimmed sequences */
+           fprintf (fd[3], "%s\n", fwd[i]->header);
+           fprintf (fd[3], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
+           fprintf (fd[3], "%s\n", rev[i]->header);
+           fprintf (fd[3], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
+           ++ g_count_discarded;
+         }
+        else   /* unassembled reads*/
+         {
+           PEAR_RESET_ASM_TYPE(fwd[i]);
+           fprintf (fd[1], "%s\n", fwd[i]->header);
+           fprintf (fd[2], "%s\n", rev[i]->header);
+           fprintf (fd[1], "%s\n+\n%s\n", fwd[i]->data,  fwd[i]->qscore);
+           fprintf (fd[2], "%s\n+\n%s\n", rev[i]->data, rev[i]->qscore); /* printing the reverse compliment of the original sequence */
+           ++ g_count_unassembled;
+         }
       }
    }
 }
@@ -2184,7 +2221,7 @@ void * entry_point_ef (void * data)
       {
         pthread_mutex_lock (&cs_mutex_io);
         fprintf (stdout, "."); fflush (stdout);
-        write_data (thr_global.xblock->fwd->reads, thr_global.xblock->rev->reads, thr_global.xblock->reads, thr_global.fd);
+        write_data (thr_global.xblock->fwd->reads, thr_global.xblock->rev->reads, thr_global.xblock->reads, thr_global.fd, thr_local->sw);
         // TODO: read_data ();
         elms = db_get_next_reads (thr_global.xblock->fwd, 
                                   thr_global.xblock->rev, 
@@ -2226,7 +2263,7 @@ void * entry_point_ef (void * data)
               pthread_mutex_unlock (&cs_mutex_wnd);
 //              printf ("!!!!!!!!!! reads: %d processed: %d\n", thr_global.xblock->reads, thr_global.xblock->processed);
 //              printf ("!!!!!!!!!! Writing another %d reads\n", thr_global.xblock->reads);
-              write_data (thr_global.xblock->fwd->reads, thr_global.xblock->rev->reads, thr_global.xblock->reads, thr_global.fd);
+              write_data (thr_global.xblock->fwd->reads, thr_global.xblock->rev->reads, thr_global.xblock->reads, thr_global.fd, thr_local->sw);
 //              printf ("Finsihed\n");
               break;
             }
@@ -2340,7 +2377,7 @@ void * entry_point (void * data)
       {
         pthread_mutex_lock (&cs_mutex_io);
         fprintf (stdout, "."); fflush (stdout);
-        write_data (thr_global.xblock->fwd->reads, thr_global.xblock->rev->reads, thr_global.xblock->reads, thr_global.fd);
+        write_data (thr_global.xblock->fwd->reads, thr_global.xblock->rev->reads, thr_global.xblock->reads, thr_global.fd, thr_local->sw);
         // TODO: read_data ();
         elms = db_get_next_reads (thr_global.xblock->fwd, 
                                   thr_global.xblock->rev, 
@@ -2380,7 +2417,7 @@ void * entry_point (void * data)
             {
               thr_global.xblock->threads = 1;
               pthread_mutex_unlock (&cs_mutex_wnd);
-              write_data (thr_global.xblock->fwd->reads, thr_global.xblock->rev->reads, thr_global.xblock->reads, thr_global.fd);
+              write_data (thr_global.xblock->fwd->reads, thr_global.xblock->rev->reads, thr_global.xblock->reads, thr_global.fd, thr_local->sw);
             }
            pthread_mutex_unlock (&cs_mutex_wnd);
            break;

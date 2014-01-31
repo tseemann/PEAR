@@ -39,6 +39,7 @@ static struct option long_options[] =
    { "max-uncalled-base", required_argument, NULL, 'u' }, 
    { "min-overlap",       required_argument, NULL, 'v' },
    { "memory",            required_argument, NULL, 'y' },
+   { "cap",               required_argument, NULL, 'c' },
    { NULL,                0,                 NULL, 0   }
  };
 
@@ -123,6 +124,8 @@ void usage (void)
                    "                                        followed  by  one  of  the  letters  K,  M,  or  G  denoting\n"
                    "                                        Kilobytes,  Megabytes and Gigabytes, respectively. Bytes are\n"
                    "                                        assumed in case no letter is specified.\n");
+  fprintf (stdout, "  -c, --cap                   <int>     Specify  the upper bound for the resulting quality score. If\n"
+                   "                                        set to zero, capping is disabled. (default: 40)\n");
   fprintf (stdout, "  -j, --threads               <int>     Number of threads to use\n");
   fprintf (stdout, "  -h, --help                            This help screen.\n\n");
 }
@@ -167,6 +170,7 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
   sw->test          =         1;
   sw->memory        = 200000000;
   sw->threads       =         1;
+  sw->cap           =        40;
 
   while ((opt = getopt_long(argc, argv, "b:ef:g:hj:m:n:o:p:q:r:s:t:u:v:y:", long_options, &oi)) != -1)
    {
@@ -212,6 +216,16 @@ int decode_switches (int argc, char * argv[], struct user_args * sw)
              return (0);
            }
           break;
+
+        case 'c':
+          sw->cap = (int) strtol (optarg, &ep, 10);
+          if (ep == optarg || *ep != '\0')
+           {
+             printf ("Invalid cap score.\n");
+             return (0);
+           }
+          break;
+
         case 'm':
           sw->max_asm_len = (int)strtol (optarg, &ep, 10);
           if (ep == optarg || *ep != '\0' )
