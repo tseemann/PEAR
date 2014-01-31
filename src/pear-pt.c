@@ -2899,6 +2899,7 @@ main (int argc, char * argv[])
    {
      ef = (struct emp_freq *)malloc (sizeof(struct emp_freq));
      ef->freqa = ef->freqc = ef->freqg = ef->freqt = ef->total = ef->pa = ef->pc = ef->pg = ef->pt = ef->q = 0.25;
+     sw.emp_freqs = 1;
 //     printf ("Set emp freqs to 0.25\n");
    }
   
