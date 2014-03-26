@@ -382,7 +382,7 @@ parse_block (memBlock * block)
            fprintf (stderr, "Entry is missing\n");
            abort();
          }
-        else if (phase != PEAR_PARSE_PHASE_PLUS_SIGN && offset - ptr <= 2)
+        else if (phase != PEAR_PARSE_PHASE_PLUS_SIGN && offset - ptr < 1)
          {
            fprintf (stderr, "Entry is missing\n");
            abort();
