@@ -18,6 +18,16 @@ static int eof1 = 1, eof2 = 1;
 
 unsigned int rcount = 0;
 
+
+int check_file_magic (const char * filename)
+{
+  FILE * fp;
+
+  fp = fopen(filename, "r");
+  
+  fclose(fp);
+}
+
 void print_number (size_t x)
 {
   unsigned int digits;

@@ -8,6 +8,7 @@
 #include "emp.h"
 #include "reader.h"
 #include "async.h"
+#include "pear.h"
 
 /** @file pear-pt.c
     @brief Main file containing scoring and assembly related functions (pthreads version)
@@ -2534,19 +2535,30 @@ void init_thr_global (void)
   thr_global.finish = 0;
 }
 
-void destroy_thr_global (void)
+void close_output_files (void)
 {
   fclose (thr_global.fd[0]);
   fclose (thr_global.fd[1]);
   fclose (thr_global.fd[2]);
   fclose (thr_global.fd[3]);
-   
+}
+
+void free_global_thread_memory (void)
+{
   free (thr_global.xblock->fwd);
   free (thr_global.xblock->rev);
   free (thr_global.yblock->fwd);
   free (thr_global.yblock->rev);
   free (thr_global.xblock);
   free (thr_global.yblock);
+}
+
+void destroy_thr_global (void)
+{
+  close_output_files(); 
+
+  /* free memory */
+  free_global_thread_memory ();
 }
 
 /** @brief Initialize output file names
@@ -2556,11 +2568,14 @@ void destroy_thr_global (void)
     
     @param sw
       Parsed command-line parameters given by the user
+    
+    @return
+      Returns 1 in case of success, 0 if error
 */
-void
+static int
 init_files (struct user_args * sw)
 {
-  int i;
+  int i, j;
   char * out[4];
   
   /* construct output file names */
@@ -2568,8 +2583,18 @@ init_files (struct user_args * sw)
    {
      out[i] = makefilename (sw->outfile, outfile_extensions[i]);
      thr_global.fd[i] = fopen (out[i], "w");
+     if (!thr_global.fd[i])
+      {
+        fprintf (stderr, "[ERROR]: Cannot create file %s.\n         "
+        "Check whether a) directory exists and b) there is enough space\n", out[i]);
+        free (out[i]);
+        for (j = 0; j < i; ++ j) fclose (thr_global.fd[j]);
+        return (0);
+      }
      free (out[i]);
    }
+
+  return (1);
 }
 
 void * emp_entry_point (void * data)
@@ -2762,6 +2787,9 @@ DisplayInstance (struct user_args * sw)
   fprintf (stdout, "| |_) |  _|   / _ \\ | |_) |\n");
   fprintf (stdout, "|  __/| |___ / ___ \\|  _ <\n");
   fprintf (stdout, "|_|   |_____/_/   \\_\\_| \\_\\\n\n");
+  fprintf (stdout, "%s v%s [%s]\n\n", PROGRAM_NAME, PROGRAM_VERSION, VERSION_DATE);
+  fprintf (stdout, "Citation - PEAR: a fast and accurate Illumina Paired-End reAd mergeR\n");
+  fprintf (stdout, "Zhang et al (2014) Bioinformatics 30(5): 614-620 | doi:10.1093/bioinformatics/btt593\n\n");
   fprintf (stdout, "Forward reads file.................: %s\n", sw->fastq_left);
   fprintf (stdout, "Reverse reads file.................: %s\n", sw->fastq_right);
   fprintf (stdout, "PHRED..............................: %d\n", sw->phred_base);
@@ -2823,7 +2851,13 @@ main (int argc, char * argv[])
   init_thr_global ();
   thr_data = (struct thread_local_t *) calloc (sw.threads, sizeof (struct thread_local_t));
   tid      = (pthread_t *) malloc (sw.threads * sizeof (pthread_t));
-  init_files (&sw);
+  if (!init_files (&sw))
+   {
+     free_global_thread_memory ();
+     free (tid);
+     free (thr_data);
+     return (0);
+   }
 
   /* Initialize read buffers */
   init_fastq_reader_double_buffer (sw.fastq_left, 
