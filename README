@@ -28,7 +28,7 @@ For more information, requests and bug-reports visit our website at
 
 How to compile:
 ---------------
-1. https://github.com/xflouris/PEAR.git
+1. git clone https://github.com/xflouris/PEAR.git
 2. cd PEAR
 3. make
 4. make install
@@ -47,7 +47,22 @@ How to use:
 PEAR  can  robustly  assemble most of the data sets with default parameters. The
 basic command to run PEAR is
 
-  ./pear -f forward_read.fastq -r reverse_read.fastq -o outputfile
+  ./pear -f forward_read.fastq -r reverse_read.fastq -o output_prefix
+
+The forward_read file usually has "R1" in the name, and the reverse_read
+file usually has "R2" in the name.
+
+Output files:
+-------------
+PEAR produces 4 output files:
+
+1. output_prefix.assembled.fastq - the assembled pairs
+2. output_prefix.unassembled.forward.fastq - unassembled forward reads
+3. output_prefix.unassembled.reverse.fastq - unassembled reverse reads
+4. output_prefix.dicarded.fastq  - reads which did not meet criteria specified in options
+
+Advanced usage:
+---------------
 
 For further options and fine-tuning type
   
@@ -56,7 +71,7 @@ For further options and fine-tuning type
 Important information:
 ----------------------
 1. The input files must be in FASTQ format
-2.  PEAR  does not check the paired-end reads names. PEAR assumes that the reads
+2. PEAR  does not check the paired-end reads names. PEAR assumes that the reads
 in  both files are in the same flowcell position if they appear on the same line
 number.  Therefore,  the  validity  of  the  input  files  is  left  as  a  user
 responsibility.
@@ -64,3 +79,4 @@ responsibility.
 How to cite:
 ------------
 J. Zhang, K. Kobert, T. Flouri, A. Stamatakis. PEAR: A fast and accurate Illimuna Paired-End reAd mergeR
+
